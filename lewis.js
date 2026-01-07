@@ -33,7 +33,7 @@ let state = {
   computedTotal: null,
   confirmed: false,
   centralLocked: false,
-  centralIndex: null, // null = diatomic/no central choice
+  centralIndex: null, // null = "no central atom"
   totalBank: null,
   remaining: null,
   placements: { bonds: {}, lps: {} },
@@ -42,26 +42,26 @@ let state = {
 
 const VALENCE = { H:1, C:4, N:5, O:6, F:7, P:5, Br:7 };
 
-function defMol(label, atoms, centralChoices, correct){
-  return { label, atoms, centralChoices, correct };
+function defMol(label, atoms, correct){
+  return { label, atoms, correct };
 }
 
 const MOLECULES = [
-  defMol("Br2", ["Br","Br"], [], { noCentral:true, bonds:[["A0","A1",1]], lp:{A0:3,A1:3} }),
-  defMol("F2",  ["F","F"],   [], { noCentral:true, bonds:[["A0","A1",1]], lp:{A0:3,A1:3} }),
-  defMol("H2",  ["H","H"],   [], { noCentral:true, bonds:[["A0","A1",1]], lp:{A0:0,A1:0} }),
-  defMol("N2",  ["N","N"],   [], { noCentral:true, bonds:[["A0","A1",3]], lp:{A0:1,A1:1} }),
-  defMol("O2",  ["O","O"],   [], { noCentral:true, bonds:[["A0","A1",2]], lp:{A0:2,A1:2} }),
-  defMol("HF",  ["H","F"],   [], { noCentral:true, bonds:[["A0","A1",1]], lp:{A0:0,A1:3} }),
+  defMol("Br2", ["Br","Br"], { noCentral:true, bonds:[["A0","A1",1]], lp:{A0:3,A1:3} }),
+  defMol("F2",  ["F","F"],   { noCentral:true, bonds:[["A0","A1",1]], lp:{A0:3,A1:3} }),
+  defMol("H2",  ["H","H"],   { noCentral:true, bonds:[["A0","A1",1]], lp:{A0:0,A1:0} }),
+  defMol("N2",  ["N","N"],   { noCentral:true, bonds:[["A0","A1",3]], lp:{A0:1,A1:1} }),
+  defMol("O2",  ["O","O"],   { noCentral:true, bonds:[["A0","A1",2]], lp:{A0:2,A1:2} }),
+  defMol("HF",  ["H","F"],   { noCentral:true, bonds:[["A0","A1",1]], lp:{A0:0,A1:3} }),
 
-  defMol("H2O", ["O","H","H"], [0], { bonds:[["A0","A1",1],["A0","A2",1]], lp:{A0:2,A1:0,A2:0} }),
-  defMol("NH3", ["N","H","H","H"], [0], { bonds:[["A0","A1",1],["A0","A2",1],["A0","A3",1]], lp:{A0:1,A1:0,A2:0,A3:0} }),
-  defMol("PF3", ["P","F","F","F"], [0], { bonds:[["A0","A1",1],["A0","A2",1],["A0","A3",1]], lp:{A0:1,A1:3,A2:3,A3:3} }),
-  defMol("CF4", ["C","F","F","F","F"], [0], { bonds:[["A0","A1",1],["A0","A2",1],["A0","A3",1],["A0","A4",1]], lp:{A0:0,A1:3,A2:3,A3:3,A4:3} }),
-  defMol("CBr4", ["C","Br","Br","Br","Br"], [0], { bonds:[["A0","A1",1],["A0","A2",1],["A0","A3",1],["A0","A4",1]], lp:{A0:0,A1:3,A2:3,A3:3,A4:3} }),
+  defMol("H2O", ["O","H","H"], { bonds:[["A0","A1",1],["A0","A2",1]], lp:{A0:2,A1:0,A2:0} }),
+  defMol("NH3", ["N","H","H","H"], { bonds:[["A0","A1",1],["A0","A2",1],["A0","A3",1]], lp:{A0:1,A1:0,A2:0,A3:0} }),
+  defMol("PF3", ["P","F","F","F"], { bonds:[["A0","A1",1],["A0","A2",1],["A0","A3",1]], lp:{A0:1,A1:3,A2:3,A3:3} }),
+  defMol("CF4", ["C","F","F","F","F"], { bonds:[["A0","A1",1],["A0","A2",1],["A0","A3",1],["A0","A4",1]], lp:{A0:0,A1:3,A2:3,A3:3,A4:3} }),
+  defMol("CBr4", ["C","Br","Br","Br","Br"], { bonds:[["A0","A1",1],["A0","A2",1],["A0","A3",1],["A0","A4",1]], lp:{A0:0,A1:3,A2:3,A3:3,A4:3} }),
 
-  defMol("CO2", ["C","O","O"], [0], { bonds:[["A0","A1",2],["A0","A2",2]], lp:{A0:0,A1:2,A2:2} }),
-  defMol("HCN", ["C","H","N"], [0], { bonds:[["A0","A1",1],["A0","A2",3]], lp:{A0:0,A1:0,A2:1} }),
+  defMol("CO2", ["C","O","O"], { bonds:[["A0","A1",2],["A0","A2",2]], lp:{A0:0,A1:2,A2:2} }),
+  defMol("HCN", ["C","H","N"], { bonds:[["A0","A1",1],["A0","A2",3]], lp:{A0:0,A1:0,A2:1} }),
 ];
 
 function parseFormula(formula){
@@ -100,9 +100,7 @@ function setFeedback(kind, title, bullets){
   feedback.innerHTML = `<h3>${title}</h3>${ul}`;
 }
 
-/* -----------------------
-   Geometry
------------------------ */
+/* -------- Geometry -------- */
 function getGeometry(mol){
   const atomsPos = {};
   const n = mol.atoms.length;
@@ -115,20 +113,20 @@ function getGeometry(mol){
     atomsPos.A0 = {x:430, y:260};
     atomsPos.A1 = {x:570, y:260};
   } else if(mol.label === "H2O"){
-    atomsPos.A0 = {x:500, y:250};
-    atomsPos.A1 = {x:380, y:330};
-    atomsPos.A2 = {x:620, y:330};
-  } else if(["NH3","PF3"].includes(mol.label)){
     atomsPos.A0 = {x:500, y:240};
-    atomsPos.A1 = {x:380, y:330};
-    atomsPos.A2 = {x:620, y:330};
-    atomsPos.A3 = {x:500, y:370};
+    atomsPos.A1 = {x:380, y:340};
+    atomsPos.A2 = {x:620, y:340};
+  } else if(["NH3","PF3"].includes(mol.label)){
+    atomsPos.A0 = {x:500, y:220};
+    atomsPos.A1 = {x:360, y:330};
+    atomsPos.A2 = {x:640, y:330};
+    atomsPos.A3 = {x:500, y:385};
   } else if(["CF4","CBr4"].includes(mol.label)){
     atomsPos.A0 = {x:500, y:260};
-    atomsPos.A1 = {x:500, y:120};
-    atomsPos.A2 = {x:660, y:260};
-    atomsPos.A3 = {x:500, y:400};
-    atomsPos.A4 = {x:340, y:260};
+    atomsPos.A1 = {x:500, y:110};
+    atomsPos.A2 = {x:675, y:260};
+    atomsPos.A3 = {x:500, y:410};
+    atomsPos.A4 = {x:325, y:260};
   } else {
     atomsPos.A0 = {x:500, y:260};
     for(let i=1;i<n;i++){
@@ -136,58 +134,57 @@ function getGeometry(mol){
     }
   }
 
-  // Bond zones: ONLY between atoms that are connected in the correct structure
+  // ONE bond zone per correct connection (pill between the two atoms)
   const zones = [];
   const seen = new Set();
+
   for(const [a,b] of mol.correct.bonds){
     const key = [a,b].sort().join("-");
     if(seen.has(key)) continue;
     seen.add(key);
 
     const p1 = atomsPos[a], p2 = atomsPos[b];
-    const mid = {x:(p1.x+p2.x)/2, y:(p1.y+p2.y)/2};
-    const dx = Math.abs(p1.x-p2.x);
-    const dy = Math.abs(p1.y-p2.y);
-    const orient = dy > dx ? "v" : "h";
+    const cx = (p1.x+p2.x)/2;
+    const cy = (p1.y+p2.y)/2;
+    const dx = (p2.x-p1.x);
+    const dy = (p2.y-p1.y);
+    const dist = Math.hypot(dx,dy);
 
-    let w = 120, h = 52;
-    if(orient === "v"){ w = 86; h = 78; }
+    // Width of pill drop zone: distance between atom edges (approx)
+    const w = Math.max(90, dist - 80);
+    const ang = Math.atan2(dy, dx) * 180 / Math.PI;
 
     zones.push({
       id:`BZ_${key}`,
-      a, b,
-      x: mid.x - w/2,
-      y: mid.y - h/2,
-      w, h,
-      orient
+      a,b,
+      cx,cy,
+      w,
+      ang
     });
   }
 
   return { atomsPos, zones };
 }
 
-/* ✅ Lone-pair slots: CORNERS ONLY
-   (prevents any lone-pair slot from landing between atoms)
-*/
-function lpSlotOffsets(){
+// Corner lone-pair dots (small + clean)
+function lpOffsets(){
   return [
-    {dx:-44, dy:-44}, // NW
-    {dx: 44, dy:-44}, // NE
-    {dx: 44, dy: 44}, // SE
-    {dx:-44, dy: 44}, // SW
+    {dx:-46, dy:-46}, // NW
+    {dx: 46, dy:-46}, // NE
+    {dx: 46, dy: 46}, // SE
+    {dx:-46, dy: 46}, // SW
   ];
 }
 
-/* -----------------------
-   Rendering
------------------------ */
+/* -------- Rendering -------- */
 function renderMoleculeHeader(){
   molTitle.innerHTML = formatSubscripts(state.mol.label);
   molPrompt.innerHTML = state.mol.correct.noCentral
-    ? `Confirm electrons, then choose <b>No central atom</b> and lock it to build.`
-    : `Confirm electrons, choose the central atom, then build.`;
+    ? `Confirm electrons, then choose <b>No central atom</b> and lock it.`
+    : `Confirm electrons, choose a central atom, then build.`;
 }
 
+/* ✅ CENTRAL ATOM OPTIONS: ALL NON-H atoms (+ “No central atom” if diatomic) */
 function renderCentralChoices(){
   clearChildren(centralSelect);
 
@@ -196,21 +193,22 @@ function renderCentralChoices(){
   opt0.textContent = "Select…";
   centralSelect.appendChild(opt0);
 
-  // If diatomic/noCentral, force an explicit "No central atom" selection
+  // Diatomic explicit option
   if(state.mol.correct.noCentral){
-    const opt = document.createElement("option");
-    opt.value = "none";
-    opt.textContent = "No central atom (diatomic)";
-    centralSelect.appendChild(opt);
-  } else {
-    const choices = state.mol.centralChoices?.length ? state.mol.centralChoices : [0];
-    for(const idx of choices){
-      const opt = document.createElement("option");
-      opt.value = String(idx);
-      opt.textContent = `${state.mol.atoms[idx]} (atom ${idx+1})`;
-      centralSelect.appendChild(opt);
-    }
+    const optNone = document.createElement("option");
+    optNone.value = "none";
+    optNone.textContent = "No central atom (diatomic)";
+    centralSelect.appendChild(optNone);
   }
+
+  // All non-H atoms as candidates (students decide which is best)
+  state.mol.atoms.forEach((sym, i) => {
+    if(sym === "H") return;
+    const opt = document.createElement("option");
+    opt.value = String(i);
+    opt.textContent = `${sym} (atom ${i+1})`;
+    centralSelect.appendChild(opt);
+  });
 
   centralSelect.disabled = !state.confirmed;
   btnLockCentral.disabled = !state.confirmed;
@@ -236,8 +234,22 @@ function enableBuildUI(enabled){
   btnClear.disabled = !enabled;
 }
 
+function wireDropTarget(el){
+  el.addEventListener("dragover", (e)=>{ e.preventDefault(); el.style.outline = "3px solid rgba(255,198,39,.55)"; });
+  el.addEventListener("dragleave", ()=>{ el.style.outline = "none"; });
+  el.addEventListener("drop", (e)=>{
+    e.preventDefault();
+    el.style.outline = "none";
+    const tool = state.dragTool;
+    if(!tool) return;
+
+    const type = el.dataset.dropType;
+    if(type === "bond") placeBond(el.dataset.bondId, tool);
+    if(type === "lp") placeLP(el.dataset.lpId, tool);
+  });
+}
+
 function renderStage(){
-  // ✅ Requirement: skeleton/model must NOT appear until central atom is locked
   const canShow = state.confirmed && state.centralLocked;
 
   stageWrap.style.display = canShow ? "block" : "none";
@@ -256,7 +268,7 @@ function renderStage(){
 
   const { atomsPos, zones } = getGeometry(state.mol);
 
-  // atoms
+  // atoms + lone-pair dots
   for(let i=0;i<state.mol.atoms.length;i++){
     const id = "A"+i;
     const p = atomsPos[id];
@@ -269,35 +281,31 @@ function renderStage(){
     atom.innerHTML = `<div class="sym">${state.mol.atoms[i]}</div>`;
     stageWrap.appendChild(atom);
 
-    // lone pair slots at corners (NO text)
-    const offsets = lpSlotOffsets();
-    offsets.forEach((off, k) => {
+    lpOffsets().forEach((off, k) => {
       const lpId = `LP_${id}_${k}`;
       const slot = document.createElement("div");
       slot.className = "drop-lp" + (state.placements.lps[lpId] ? " filled" : "");
       slot.dataset.dropType = "lp";
       slot.dataset.lpId = lpId;
       slot.dataset.atomId = id;
-      slot.style.left = (p.x + off.dx - 22) + "px";
-      slot.style.top  = (p.y + off.dy - 15) + "px";
+      slot.style.left = (p.x + off.dx - 9) + "px";
+      slot.style.top  = (p.y + off.dy - 9) + "px";
       wireDropTarget(slot);
       slot.addEventListener("click", () => removeLP(lpId));
       stageWrap.appendChild(slot);
     });
   }
 
-  // bond zones ONLY between atoms (exactly one zone per connected pair)
+  // bond zones (one per pair, visually between atoms)
   zones.forEach(z => {
     const zone = document.createElement("div");
     zone.className = "bond-zone" + (state.placements.bonds[z.id] ? " filled" : "");
     zone.dataset.dropType = "bond";
     zone.dataset.bondId = z.id;
-    zone.dataset.a = z.a;
-    zone.dataset.b = z.b;
-    zone.style.left = z.x + "px";
-    zone.style.top  = z.y + "px";
-    zone.style.width = z.w + "px";
-    zone.style.height = z.h + "px";
+    zone.style.setProperty("--cx", z.cx + "px");
+    zone.style.setProperty("--cy", z.cy + "px");
+    zone.style.setProperty("--w", z.w + "px");
+    zone.style.setProperty("--ang", z.ang + "deg");
 
     const order = state.placements.bonds[z.id] || 0;
     zone.innerHTML = (order === 0)
@@ -348,25 +356,13 @@ function drawBondsSVG(atomsPos, zones){
   bondSvg.innerHTML = svgParts.join("");
 }
 
-function wireDropTarget(el){
-  el.addEventListener("dragover", (e)=>{ e.preventDefault(); el.style.outline = "3px solid rgba(255,198,39,.55)"; });
-  el.addEventListener("dragleave", ()=>{ el.style.outline = "none"; });
-  el.addEventListener("drop", (e)=>{
-    e.preventDefault();
-    el.style.outline = "none";
-    const tool = state.dragTool;
-    if(!tool) return;
-
-    const type = el.dataset.dropType;
-    if(type === "bond") placeBond(el.dataset.bondId, tool);
-    if(type === "lp") placeLP(el.dataset.lpId, tool);
-  });
+/* -------- Placement logic -------- */
+function computeSpent(){
+  let spent = 0;
+  for(const k in state.placements.bonds) spent += (state.placements.bonds[k]||0)*2;
+  for(const k in state.placements.lps) if(state.placements.lps[k]) spent += 2;
+  return spent;
 }
-
-/* -----------------------
-   Placement logic
------------------------ */
-function canSpend(cost){ return state.remaining !== null && state.remaining - cost >= 0; }
 
 function placeBond(bondId, tool){
   if(!(tool === "bond1" || tool === "bond2" || tool === "bond3")) return;
@@ -393,7 +389,7 @@ function placeLP(lpId, tool){
   if(tool !== "lp") return;
   if(state.placements.lps[lpId]) return;
 
-  if(!canSpend(2)){
+  if(state.remaining - 2 < 0){
     buildMsg.className = "msg msg-warn";
     buildMsg.textContent = "Not enough electrons remaining for a lone pair. Remove something first.";
     return;
@@ -421,13 +417,6 @@ function removeLP(lpId){
   renderStage();
 }
 
-function computeSpent(){
-  let spent = 0;
-  for(const k in state.placements.bonds) spent += (state.placements.bonds[k]||0)*2;
-  for(const k in state.placements.lps) if(state.placements.lps[k]) spent += 2;
-  return spent;
-}
-
 function clearPlacements(){
   const spent = computeSpent();
   state.remaining += spent;
@@ -438,10 +427,8 @@ function clearPlacements(){
   feedback.style.display = "none";
 }
 
-/* -----------------------
-   Student-friendly check
------------------------ */
-function getUserModelSummary(){
+/* -------- Student-friendly check -------- */
+function getUserSummary(){
   const mol = state.mol;
 
   const correctBondOrders = {};
@@ -468,62 +455,61 @@ function getUserModelSummary(){
 
 function checkMolecule(){
   const mol = state.mol;
-  const { bondOrders, correctBondOrders, lpCount } = getUserModelSummary();
+  const { bondOrders, correctBondOrders, lpCount } = getUserSummary();
 
-  let bondMissing = 0;
-  let bondWrong = 0;
+  let missingBond = 0;
+  let wrongBondType = 0;
+
   for(const id in correctBondOrders){
     const want = correctBondOrders[id];
     const got = bondOrders[id] || 0;
-    if(got === 0) bondMissing++;
-    else if(got !== want) bondWrong++;
+    if(got === 0) missingBond++;
+    else if(got !== want) wrongBondType++;
   }
 
-  let lpOff = 0;
+  if(missingBond > 0){
+    setFeedback("bad","Not yet — start with bonds.",[
+      "Put a bond in each bond space between atoms.",
+      "Then adjust single → double/triple if needed.",
+      "Finish with lone pairs."
+    ]);
+    return;
+  }
+
+  if(wrongBondType > 0){
+    setFeedback("bad","Close — check bond types.",[
+      "At least one bond should be a different type (single/double/triple).",
+      "Use the electron bank and octet rule to decide bond order."
+    ]);
+    return;
+  }
+
+  // Lone pairs
+  let lpMismatch = 0;
   for(const atomId in mol.correct.lp){
     const want = mol.correct.lp[atomId];
     const got = lpCount[atomId] || 0;
-    if(got !== want) lpOff++;
+    if(got !== want) lpMismatch++;
   }
 
-  const remainingOk = (state.remaining === 0);
-
-  if(bondMissing > 0){
-    setFeedback("bad","Not yet — start with bonds.",[
-      "Put a bond in the bond space between the atoms.",
-      "Then change single → double/triple if needed.",
-      "Finish with lone pairs to complete outer shells."
-    ]);
-    return;
-  }
-
-  if(bondWrong > 0){
-    setFeedback("bad","Close — check bond types.",[
-      "At least one bond should be a different type (single/double/triple).",
-      "Ask: how many shared pairs help each atom reach a stable outer shell?",
-      "Then use lone pairs to finish."
-    ]);
-    return;
-  }
-
-  if(lpOff > 0){
+  if(lpMismatch > 0){
     setFeedback("bad","Good bonds — now fix lone pairs.",[
-      "Adjust lone pairs so each atom’s outer shell is complete.",
-      "Use the electron bank to guide you (remaining should reach 0)."
+      "Adjust lone pairs so each atom has a complete outer shell.",
+      "Your electron bank should end at 0 remaining."
     ]);
     return;
   }
 
-  if(!remainingOk){
+  if(state.remaining !== 0){
     setFeedback("bad","Almost — check the electron bank.",[
-      "Your structure is close, but your electron spending doesn’t match the total.",
-      "Remove extra lone pairs or lower a bond order, then re-check."
+      "Your structure is close, but electron spending doesn’t match the total.",
+      "Remove extras or adjust bond order until remaining = 0."
     ]);
     return;
   }
 
   setFeedback("good","Correct! 🎉",[
-    "Bonds match the molecule’s connections and bond orders.",
+    "Bond types match the molecule.",
     "Lone pairs complete outer shells correctly.",
     "Electron bank is fully used (remaining = 0)."
   ]);
@@ -545,17 +531,13 @@ function showCorrect(){
     }
   }
 
-  const spent = computeSpent();
-  state.remaining = state.totalBank - spent;
-
+  state.remaining = state.totalBank - computeSpent();
   renderBank();
   renderStage();
   setFeedback("good","Correct model shown.",["Compare bond types and lone pairs to yours."]);
 }
 
-/* -----------------------
-   Step gating / reset
------------------------ */
+/* -------- Reset / gating -------- */
 function resetBuild(){
   state.confirmed = false;
   state.centralLocked = false;
@@ -593,60 +575,29 @@ function afterValenceCorrect(){
 
   renderCentralChoices();
   renderBank();
-  renderStage(); // still hidden until lock
+  renderStage();
 }
 
-/* -----------------------
-   Molecule selection
------------------------ */
 function pickRandomMolecule(){
   const mol = MOLECULES[Math.floor(Math.random()*MOLECULES.length)];
   state.mol = mol;
   state.computedTotal = computeTotalValence(mol.label);
 
-  renderMoleculeHeader();
+  molTitle.innerHTML = formatSubscripts(state.mol.label);
+  molPrompt.innerHTML = state.mol.correct.noCentral
+    ? `Confirm electrons, then choose <b>No central atom (diatomic)</b> and lock it.`
+    : `Confirm electrons, choose a central atom, then build.`;
+
   resetBuild();
-  renderCentralChoices();
 }
 
-function renderCentralChoices(){
-  clearChildren(centralSelect);
-
-  const opt0 = document.createElement("option");
-  opt0.value = "";
-  opt0.textContent = "Select…";
-  centralSelect.appendChild(opt0);
-
-  if(state.mol?.correct?.noCentral){
-    const opt = document.createElement("option");
-    opt.value = "none";
-    opt.textContent = "No central atom (diatomic)";
-    centralSelect.appendChild(opt);
-  } else if(state.mol){
-    const choices = state.mol.centralChoices?.length ? state.mol.centralChoices : [0];
-    for(const idx of choices){
-      const opt = document.createElement("option");
-      opt.value = String(idx);
-      opt.textContent = `${state.mol.atoms[idx]} (atom ${idx+1})`;
-      centralSelect.appendChild(opt);
-    }
-  }
-
-  centralSelect.disabled = !state.confirmed;
-  btnLockCentral.disabled = !state.confirmed;
-}
-
-/* -----------------------
-   Drag wiring
------------------------ */
+/* -------- Drag wiring -------- */
 document.querySelectorAll(".tool").forEach(toolEl=>{
   toolEl.addEventListener("dragstart", ()=>{ state.dragTool = toolEl.dataset.tool; });
   toolEl.addEventListener("dragend",   ()=>{ state.dragTool = null; });
 });
 
-/* -----------------------
-   Events
------------------------ */
+/* -------- Events -------- */
 btnNewMolTop.addEventListener("click", pickRandomMolecule);
 btnNewMol.addEventListener("click", pickRandomMolecule);
 btnReset.addEventListener("click", resetBuild);
@@ -703,7 +654,7 @@ btnLockCentral.addEventListener("click", ()=>{
     centralMsg.innerHTML = `Central atom locked: <b>${state.mol.atoms[state.centralIndex]}</b>. Now build the model.`;
   }
 
-  renderStage(); // ✅ NOW reveal model
+  renderStage();
 });
 
 btnClear.addEventListener("click", clearPlacements);
