@@ -15,7 +15,6 @@
 }
 
 *{box-sizing:border-box}
-html,body{height:100%}
 body{
   margin:0;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
@@ -34,10 +33,9 @@ body{
   justify-content:space-between;
   gap:16px;
 }
-
 .brand{display:flex;align-items:center;gap:14px;color:white}
 .brand-mark{width:40px;height:40px;border-radius:10px;background:var(--gold)}
-.brand-text h1{margin:0;font-size:20px;line-height:1.2}
+.brand-text h1{margin:0;font-size:20px}
 .brand-text p{margin:2px 0 0;color:rgba(255,255,255,.85);font-size:13px}
 .topbar-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 
@@ -51,7 +49,6 @@ body{
 }
 
 .card{
-  width:100%;
   background:var(--card);
   border:1px solid var(--line);
   border-radius:var(--radius);
@@ -147,7 +144,6 @@ h2{margin:0 0 8px;font-size:18px}
   background:linear-gradient(180deg,#fff,#fff6f8);
   overflow:hidden;
 }
-
 .bond-svg{
   position:absolute;
   inset:0;
@@ -169,23 +165,18 @@ h2{margin:0 0 8px;font-size:18px}
   font-weight:1000;
   box-shadow:0 8px 20px rgba(0,0,0,.06);
   user-select:none;
-  z-index:3;
+  z-index:5;
 }
 .atom .sym{font-size:18px}
 
-/* Lone pair slots — corners only (prevents any slot between atoms) */
+/* Lone pair drop dots (corners only, subtle, NO TEXT) */
 .drop-lp{
   position:absolute;
-  width:44px;height:30px;
-  border-radius:12px;
+  width:18px;height:18px;
+  border-radius:999px;
   border:2px dashed #e7c5cf;
   background:rgba(255,255,255,.75);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  z-index:2;
-
-  /* never show “drop” text */
+  z-index:4;
   font-size:0 !important;
   color:transparent !important;
 }
@@ -193,27 +184,37 @@ h2{margin:0 0 8px;font-size:18px}
   border-style:solid;
   background:#fff;
 }
-.drop-lp.filled::before{
+.drop-lp.filled::after{
   content:"••";
-  font-size:14px;
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:12px;
   color:var(--ink);
   letter-spacing:.06em;
 }
 
-/* The ONLY bond drop zone between atoms */
+/* Bond drop zone: ONE pill BETWEEN atoms, rotated to match angle */
 .bond-zone{
   position:absolute;
-  border-radius:16px;
+  left:var(--cx);
+  top:var(--cy);
+  width:var(--w);
+  height:44px;
+  transform:translate(-50%,-50%) rotate(var(--ang));
+  transform-origin:center;
+  border-radius:999px;
   border:2px dashed #d9a9b8;
   background:rgba(255,255,255,.9);
   display:flex;
   align-items:center;
   justify-content:center;
-  font-weight:1000;
-  z-index:2;
+  z-index:3;
 }
 .bond-zone .ph{
-  font-size:12px;
+  font-size:11px;
   letter-spacing:.08em;
   color:rgba(122,43,68,.75);
   font-weight:900;
@@ -277,4 +278,3 @@ h2{margin:0 0 8px;font-size:18px}
 .feedback.good{background:var(--ok);border-color:#b7de88}
 .feedback h3{margin:0 0 8px}
 .feedback ul{margin:8px 0 0;padding-left:18px}
-
