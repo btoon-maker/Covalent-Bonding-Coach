@@ -14,33 +14,16 @@
   --shadow:0 10px 30px rgba(0,0,0,.08);
 }
 
-/* =========================
-   HARD RESET (prevents "pushed right" layouts)
-   ========================= */
 *{box-sizing:border-box}
 html,body{height:100%}
 body{
-  margin:0 !important;
-  padding:0 !important;
-  width:100%;
-  max-width:100%;
-  overflow-x:hidden;              /* prevents sideways drift */
+  margin:0;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
   color:var(--ink);
   background:var(--bg);
+  overflow-x:hidden;
 }
 
-/* If you have a root wrapper (common), make sure it can't offset */
-#root, #app, main{
-  width:100% !important;
-  max-width:100% !important;
-  margin:0 !important;
-  padding:0 !important;
-}
-
-/* =========================
-   HEADER
-   ========================= */
 .topbar{
   width:100%;
   background:linear-gradient(90deg,var(--maroon),#6d1430);
@@ -52,62 +35,21 @@ body{
   gap:16px;
 }
 
-.brand{
-  display:flex;
-  align-items:center;
-  gap:14px;
-  color:white;
-}
+.brand{display:flex;align-items:center;gap:14px;color:white}
+.brand-mark{width:40px;height:40px;border-radius:10px;background:var(--gold)}
+.brand-text h1{margin:0;font-size:20px;line-height:1.2}
+.brand-text p{margin:2px 0 0;color:rgba(255,255,255,.85);font-size:13px}
+.topbar-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 
-.brand-mark{
-  width:40px;
-  height:40px;
-  border-radius:10px;
-  background:var(--gold);
-}
-
-.brand-text h1{
-  margin:0;
-  font-size:20px;
-  line-height:1.2;
-}
-
-.brand-text p{
-  margin:2px 0 0;
-  color:rgba(255,255,255,.85);
-  font-size:13px;
-}
-
-/* This is the RIGHT SIDE of the header (where New Molecule should live if it stays in header) */
-.topbar-actions{
-  display:flex;
-  gap:10px;
-  align-items:center;
-  flex-wrap:wrap;
-}
-
-/* =========================
-   MAIN WRAP (THIS FIXES THE GIANT LEFT SPACE)
-   ========================= */
 .wrap{
-  /* Always center and never "drift" right */
   width:min(1400px, calc(100vw - 32px));
-  margin:18px auto 40px !important;
-  padding:0 12px !important;
+  margin:18px auto 40px;
+  padding:0 12px;
   display:flex;
   flex-direction:column;
   gap:16px;
-
-  /* kill any leftover offsets from earlier versions */
-  position:relative;
-  left:auto !important;
-  right:auto !important;
-  transform:none !important;
 }
 
-/* =========================
-   CARDS / TYPOGRAPHY
-   ========================= */
 .card{
   width:100%;
   background:var(--card);
@@ -117,31 +59,15 @@ body{
   padding:18px;
 }
 
-.card-head .eyebrow{
-  font-size:11px;
-  letter-spacing:.12em;
-  color:var(--muted);
-  font-weight:700;
-}
-
-.mol-title{
-  font-size:26px;
-  font-weight:800;
-  margin-top:2px;
-}
-
+.eyebrow{font-size:11px;letter-spacing:.12em;color:var(--muted);font-weight:700}
+.mol-title{font-size:26px;font-weight:800;margin-top:2px}
 .muted{color:var(--muted)}
 .small{font-size:12px}
 
 h2{margin:0 0 8px;font-size:18px}
 .label{font-weight:700;font-size:13px;margin-bottom:6px;display:block}
 
-.row{
-  display:flex;
-  gap:10px;
-  align-items:center;
-  flex-wrap:wrap;
-}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 
 .input,.select{
   border:1px solid var(--line);
@@ -151,10 +77,7 @@ h2{margin:0 0 8px;font-size:18px}
   min-width:220px;
   outline:none;
 }
-.input:focus,.select:focus{
-  border-color:#c9b3bb;
-  box-shadow:0 0 0 3px rgba(140,29,64,.12)
-}
+.input:focus,.select:focus{border-color:#c9b3bb;box-shadow:0 0 0 3px rgba(140,29,64,.12)}
 
 .btn{
   border:1px solid transparent;
@@ -183,17 +106,11 @@ h2{margin:0 0 8px;font-size:18px}
 .msg-good{background:var(--ok);border-color:#b7de88}
 .msg-bad{background:var(--bad);border-color:#f3b0b0}
 
-/* =========================
-   STEP 1 LAYOUT
-   ========================= */
-.step1-grid{
-  display:grid;
-  grid-template-columns: 1.1fr .9fr;
-  gap:14px;
-}
-@media (max-width: 780px){
-  .step1-grid{grid-template-columns:1fr}
-}
+.card-head-row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+
+.step1-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:14px}
+@media (max-width:780px){.step1-grid{grid-template-columns:1fr}}
 
 .panel{
   border:1px solid var(--line);
@@ -202,12 +119,7 @@ h2{margin:0 0 8px;font-size:18px}
   background:#fff;
 }
 
-.bank .bank-head{
-  display:flex;
-  align-items:flex-start;
-  justify-content:space-between;
-  gap:12px;
-}
+.bank .bank-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
 .bank-badges{display:flex;gap:8px}
 .badge{
   border:1px solid var(--line);
@@ -220,29 +132,12 @@ h2{margin:0 0 8px;font-size:18px}
 .rules{margin:10px 0 0;padding-left:18px;color:var(--muted)}
 .rules li{margin:4px 0}
 
-.card-head-row{
-  display:flex;
-  align-items:flex-start;
-  justify-content:space-between;
-  gap:12px;
-}
-.actions{display:flex;gap:10px;flex-wrap:wrap}
-
-/* =========================
-   STEP 2 LAYOUT
-   ========================= */
-.build-grid{
-  display:grid;
-  grid-template-columns: 1.3fr .7fr;
-  gap:14px;
-  margin-top:10px;
-}
-@media (max-width: 980px){
-  .build-grid{grid-template-columns:1fr}
-}
+.build-grid{display:grid;grid-template-columns:1.3fr .7fr;gap:14px;margin-top:10px}
+@media (max-width:980px){.build-grid{grid-template-columns:1fr}}
 
 .panel-title{font-weight:900;margin-bottom:10px}
 
+/* Stage */
 .stage{
   position:relative;
   width:100%;
@@ -261,6 +156,7 @@ h2{margin:0 0 8px;font-size:18px}
   pointer-events:none;
 }
 
+/* Atoms */
 .atom{
   position:absolute;
   width:60px;height:60px;
@@ -273,47 +169,68 @@ h2{margin:0 0 8px;font-size:18px}
   font-weight:1000;
   box-shadow:0 8px 20px rgba(0,0,0,.06);
   user-select:none;
+  z-index:3;
 }
 .atom .sym{font-size:18px}
 
+/* Lone pair slots — corners only (prevents any slot between atoms) */
 .drop-lp{
   position:absolute;
-  width:46px;height:30px;
+  width:44px;height:30px;
   border-radius:12px;
   border:2px dashed #e7c5cf;
-  background:rgba(255,255,255,.7);
+  background:rgba(255,255,255,.75);
   display:flex;
   align-items:center;
   justify-content:center;
-  font-size:12px;
-  color:#a14a64;
-  font-weight:900;
+  z-index:2;
+
+  /* never show “drop” text */
+  font-size:0 !important;
+  color:transparent !important;
 }
 .drop-lp.filled{
   border-style:solid;
   background:#fff;
+}
+.drop-lp.filled::before{
+  content:"••";
+  font-size:14px;
   color:var(--ink);
+  letter-spacing:.06em;
 }
 
+/* The ONLY bond drop zone between atoms */
 .bond-zone{
   position:absolute;
-  width:120px;height:54px;
   border-radius:16px;
-  border:2px dashed #e7c5cf;
-  background:rgba(255,255,255,.72);
+  border:2px dashed #d9a9b8;
+  background:rgba(255,255,255,.9);
   display:flex;
   align-items:center;
   justify-content:center;
   font-weight:1000;
-  color:#a14a64;
-  letter-spacing:.04em;
+  z-index:2;
+}
+.bond-zone .ph{
+  font-size:12px;
+  letter-spacing:.08em;
+  color:rgba(122,43,68,.75);
+  font-weight:900;
+  text-transform:uppercase;
 }
 .bond-zone.filled{
   border-style:solid;
   background:#fff;
+}
+.bond-zone .bondGlyph{
+  font-size:22px;
+  font-weight:1000;
+  line-height:1;
   color:var(--ink);
 }
 
+/* Toolbox */
 .toolbox .tool-list{display:flex;flex-direction:column;gap:10px}
 .tool{
   display:flex;
@@ -348,6 +265,7 @@ h2{margin:0 0 8px;font-size:18px}
 .hint{margin:0;padding-left:18px;color:var(--muted)}
 .hint li{margin:4px 0}
 
+/* Feedback */
 .feedback{
   margin-top:14px;
   padding:14px;
@@ -359,3 +277,4 @@ h2{margin:0 0 8px;font-size:18px}
 .feedback.good{background:var(--ok);border-color:#b7de88}
 .feedback h3{margin:0 0 8px}
 .feedback ul{margin:8px 0 0;padding-left:18px}
+
