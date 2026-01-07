@@ -1,877 +1,752 @@
-// Covalent Bonding Coach (Lewis Structures)
-// - Supports: diatomic (2 atoms), linear triatomic (2 terminals), trigonal (3 terminals), tetra (4 terminals)
-// - One bond tile per connection (bond zone between atoms)
-// - Lone pairs in slots around atoms
-// - Electron bank hidden until Step 0 count is correct
-// - Student-friendly feedback
+/* Covalent Bonding Coach — Lewis Structures (Option B)
+   - Student must confirm total valence electrons before bank appears
+   - One bond tile placed ONCE between atoms (not twice)
+   - Vertical bonds rotate tile for readability
+   - Feedback is student-friendly and NOT answer-giving
+*/
 
-const VALENCE = { H:1, C:4, N:5, O:6, F:7, Br:7, P:5 };
-
-// ---------------------------
-// Molecule definitions
-// ---------------------------
-// Each molecule:
-// - name
-// - atoms: array of symbols
-// - centralCandidates: array of valid central indices OR null for diatomic
-// - connections: list of pairs [a,b] (atom indices) that should have a bond zone
-// - answer:
-//    bonds: { "a-b": order } where key is "min-max"
-//    lonePairs: { [atomIndex]: count }  // count of lone pairs on that atom
 const MOLECULES = [
-  // Diatomic
-  { name:"H2",  atoms:["H","H"],  centralCandidates:null,
-    connections:[[0,1]],
-    answer:{ bonds:{ "0-1":1 }, lonePairs:{ 0:0, 1:0 } }
-  },
-  { name:"F2",  atoms:["F","F"],  centralCandidates:null,
-    connections:[[0,1]],
-    answer:{ bonds:{ "0-1":1 }, lonePairs:{ 0:3, 1:3 } }
-  },
-  { name:"Br2", atoms:["Br","Br"], centralCandidates:null,
-    connections:[[0,1]],
-    answer:{ bonds:{ "0-1":1 }, lonePairs:{ 0:3, 1:3 } }
-  },
-  { name:"HF",  atoms:["H","F"],  centralCandidates:null,
-    connections:[[0,1]],
-    answer:{ bonds:{ "0-1":1 }, lonePairs:{ 0:0, 1:3 } }
-  },
-  { name:"O2",  atoms:["O","O"],  centralCandidates:null,
-    connections:[[0,1]],
-    answer:{ bonds:{ "0-1":2 }, lonePairs:{ 0:2, 1:2 } }
-  },
-  { name:"N2",  atoms:["N","N"],  centralCandidates:null,
-    connections:[[0,1]],
-    answer:{ bonds:{ "0-1":3 }, lonePairs:{ 0:1, 1:1 } }
-  },
+  // diatomic
+  { formula:"H2",  atoms:["H","H"], central:null, bonds:[[0,1,1]], lonePairs:{0:0,1:0}, totalVE:2 },
+  { formula:"F2",  atoms:["F","F"], central:null, bonds:[[0,1,1]], lonePairs:{0:3,1:3}, totalVE:14 },
+  { formula:"O2",  atoms:["O","O"], central:null, bonds:[[0,1,2]], lonePairs:{0:2,1:2}, totalVE:12 },
+  { formula:"N2",  atoms:["N","N"], central:null, bonds:[[0,1,3]], lonePairs:{0:1,1:1}, totalVE:10 },
+  { formula:"Br2", atoms:["Br","Br"], central:null, bonds:[[0,1,1]], lonePairs:{0:3,1:3}, totalVE:14 },
 
-  // Linear triatomic / 2 terminals around central
-  { name:"CO2", atoms:["O","C","O"], centralCandidates:[1],
-    connections:[[1,0],[1,2]],
-    answer:{ bonds:{ "0-1":2, "1-2":2 }, lonePairs:{ 0:2, 1:0, 2:2 } }
-  },
-  { name:"HCN", atoms:["H","C","N"], centralCandidates:[1],
-    connections:[[1,0],[1,2]],
-    answer:{ bonds:{ "0-1":1, "1-2":3 }, lonePairs:{ 0:0, 1:0, 2:1 } }
-  },
-  { name:"H2O", atoms:["H","O","H"], centralCandidates:[1],
-    connections:[[1,0],[1,2]],
-    answer:{ bonds:{ "0-1":1, "1-2":1 }, lonePairs:{ 0:0, 1:2, 2:0 } }
-  },
+  // two atoms (one central effectively)
+  { formula:"HF", atoms:["H","F"], central:null, bonds:[[0,1,1]], lonePairs:{0:0,1:3}, totalVE:8 },
 
-  // 3 terminals around central
-  { name:"NH3", atoms:["N","H","H","H"], centralCandidates:[0],
-    connections:[[0,1],[0,2],[0,3]],
-    answer:{ bonds:{ "0-1":1, "0-2":1, "0-3":1 }, lonePairs:{ 0:1, 1:0, 2:0, 3:0 } }
-  },
-  { name:"PF3", atoms:["P","F","F","F"], centralCandidates:[0],
-    connections:[[0,1],[0,2],[0,3]],
-    answer:{ bonds:{ "0-1":1, "0-2":1, "0-3":1 }, lonePairs:{ 0:1, 1:3, 2:3, 3:3 } }
-  },
+  // triatomic
+  { formula:"H2O", atoms:["O","H","H"], central:0, terminals:[1,2], layout:"bent",
+    bonds:[[0,1,1],[0,2,1]], lonePairs:{0:2,1:0,2:0}, totalVE:8 },
 
-  // 4 terminals around central
-  { name:"CF4", atoms:["C","F","F","F","F"], centralCandidates:[0],
-    connections:[[0,1],[0,2],[0,3],[0,4]],
-    answer:{ bonds:{ "0-1":1, "0-2":1, "0-3":1, "0-4":1 }, lonePairs:{ 0:0, 1:3, 2:3, 3:3, 4:3 } }
-  },
-  { name:"CBr4", atoms:["C","Br","Br","Br","Br"], centralCandidates:[0],
-    connections:[[0,1],[0,2],[0,3],[0,4]],
-    answer:{ bonds:{ "0-1":1, "0-2":1, "0-3":1, "0-4":1 }, lonePairs:{ 0:0, 1:3, 2:3, 3:3, 4:3 } }
-  },
+  { formula:"CO2", atoms:["O","C","O"], central:1, terminals:[0,2], layout:"linear",
+    bonds:[[1,0,2],[1,2,2]], lonePairs:{0:2,1:0,2:2}, totalVE:16 },
+
+  { formula:"HCN", atoms:["H","C","N"], central:1, terminals:[0,2], layout:"linear",
+    bonds:[[1,0,1],[1,2,3]], lonePairs:{0:0,1:0,2:1}, totalVE:10 },
+
+  { formula:"NH3", atoms:["N","H","H","H"], central:0, terminals:[1,2,3], layout:"trigonal",
+    bonds:[[0,1,1],[0,2,1],[0,3,1]], lonePairs:{0:1,1:0,2:0,3:0}, totalVE:8 },
+
+  { formula:"PF3", atoms:["P","F","F","F"], central:0, terminals:[1,2,3], layout:"trigonal",
+    bonds:[[0,1,1],[0,2,1],[0,3,1]], lonePairs:{0:1,1:3,2:3,3:3}, totalVE:26 },
+
+  { formula:"CF4", atoms:["C","F","F","F","F"], central:0, terminals:[1,2,3,4], layout:"tetra",
+    bonds:[[0,1,1],[0,2,1],[0,3,1],[0,4,1]], lonePairs:{0:0,1:3,2:3,3:3,4:3}, totalVE:32 },
+
+  { formula:"CBr4", atoms:["C","Br","Br","Br","Br"], central:0, terminals:[1,2,3,4], layout:"tetra",
+    bonds:[[0,1,1],[0,2,1],[0,3,1],[0,4,1]], lonePairs:{0:0,1:3,2:3,3:3,4:3}, totalVE:32 },
 ];
 
-// ---------------------------
-// State
-// ---------------------------
-const state = {
-  mol: null,
-  bankUnlocked: false,
-  bankTotal: 0,
-  bankLeft: 0,
+// rough valence electrons (main-group typical)
+const VE = { H:1, C:4, N:5, O:6, F:7, P:5, Br:7 };
 
-  centralIdx: null,
-  locked: false,
+// rules for “complete outer shell”
+function neededElectrons(sym){
+  return sym === "H" ? 2 : 8;
+}
 
-  // placements:
-  // bondZones: key "a-b" => "bond1"|"bond2"|"bond3" (one tile per connection)
-  bondZones: {},
-  // lonePairs slots: key "atomIndex-dir" => "lp"
-  lpSlots: {},
+const els = {
+  molName: document.getElementById("molName"),
+  molPrompt: document.getElementById("molPrompt"),
+  newMolBtn: document.getElementById("newMolBtn"),
 
-  // layout positions (percent-based for DOM, viewBox coords for SVG)
-  layout: null, // { atoms: {idx:{xPct,yPct,x,y}}, bonds:[{a,b,xPct,yPct}] }
+  studentTotal: document.getElementById("studentTotal"),
+  checkTotalBtn: document.getElementById("checkTotalBtn"),
+  totalFeedback: document.getElementById("totalFeedback"),
+
+  centralSelect: document.getElementById("centralSelect"),
+  lockCentralBtn: document.getElementById("lockCentralBtn"),
+  resetBtn: document.getElementById("resetBtn"),
+  centralFeedback: document.getElementById("centralFeedback"),
+
+  bankTotal: document.getElementById("bankTotal"),
+  bankRemain: document.getElementById("bankRemain"),
+  bankLockedMsg: document.getElementById("bankLockedMsg"),
+
+  model: document.getElementById("model"),
+  bondSvg: document.getElementById("bondSvg"),
+
+  checkBtn: document.getElementById("checkBtn"),
+  showBtn: document.getElementById("showBtn"),
+  clearBtn: document.getElementById("clearBtn"),
+
+  feedback: document.getElementById("feedback"),
 };
 
-const SLOT_DIRS = ["Top","Right","Bottom","Left"];
+const state = {
+  mol: null,
+  verifiedTotal: false,
+  lockedCentral: false,
+  totalVE: null,
+  remaining: null,
 
-// ---------------------------
-// Helpers
-// ---------------------------
-function $(id){ return document.getElementById(id); }
+  // placements
+  bonds: new Map(), // key "a-b" sorted => order 0..3
+  lonePairs: new Map(), // key "atomIndex:slotId" => 1 if occupied
 
-function keyAB(a,b){
-  const lo = Math.min(a,b);
-  const hi = Math.max(a,b);
-  return `${lo}-${hi}`;
+  layout: null,
+};
+
+// ---------- Molecule selection ----------
+function pickRandomMol(){
+  const m = MOLECULES[Math.floor(Math.random()*MOLECULES.length)];
+  loadMolecule(m);
 }
 
-function bondOrder(item){
-  if (item==="bond1") return 1;
-  if (item==="bond2") return 2;
-  if (item==="bond3") return 3;
-  return 0;
+function loadMolecule(mol){
+  state.mol = mol;
+  state.verifiedTotal = false;
+  state.lockedCentral = false;
+  state.totalVE = null;
+  state.remaining = null;
+  state.bonds.clear();
+  state.lonePairs.clear();
+  state.layout = null;
+
+  els.molName.textContent = mol.formula;
+  els.molPrompt.textContent = "Confirm total valence electrons, choose the central atom (if applicable), then build.";
+  els.studentTotal.value = "";
+  els.totalFeedback.className = "notice muted";
+  els.totalFeedback.innerHTML = `Enter your total, then click <strong>Check</strong>.`;
+
+  // bank hidden/unset
+  els.bankTotal.textContent = "—";
+  els.bankRemain.textContent = "—";
+  els.bankLockedMsg.style.display = "block";
+
+  // central UI
+  els.centralSelect.innerHTML = `<option value="">Select…</option>`;
+  els.centralSelect.disabled = true;
+  els.lockCentralBtn.disabled = true;
+  els.resetBtn.disabled = true;
+  els.centralFeedback.className = "notice muted";
+  els.centralFeedback.textContent = "Check the total electrons first.";
+
+  // step 2 buttons
+  els.checkBtn.disabled = true;
+  els.showBtn.disabled = true;
+  els.clearBtn.disabled = true;
+
+  els.feedback.className = "feedback muted";
+  els.feedback.textContent = "Lock a central atom to begin building.";
+
+  // model placeholder
+  els.model.innerHTML = `<div class="muted">Lock a central atom to begin building the model.</div>`;
+  clearSvg();
+
+  // populate possible central atoms after verify
 }
 
-function bondCost(item){
-  const o = bondOrder(item);
-  if (o===1) return 2;
-  if (o===2) return 4;
-  if (o===3) return 6;
-  return 0;
-}
+els.newMolBtn.addEventListener("click", pickRandomMol);
 
-function totalValence(mol){
-  return mol.atoms.reduce((sum, sym) => sum + (VALENCE[sym] ?? 0), 0);
-}
-
-function slotKey(atomIndex, dir){
-  return `${atomIndex}-${dir}`;
-}
-
-function setFeedback(el, html, kind=null){
-  el.className = "feedback" + (kind==="good" ? " good" : kind==="bad" ? " bad" : "");
-  el.innerHTML = html;
-}
-
-function updateBankUI(){
-  if (!state.bankUnlocked){
-    $("bankTotal").textContent = "—";
-    $("bankLeft").textContent = "—";
-    $("bankTotal2").textContent = "—";
-    $("bankLeft2").textContent = "—";
+// ---------- Electron total verification ----------
+els.checkTotalBtn.addEventListener("click", () => {
+  const entered = Number(els.studentTotal.value);
+  if (!Number.isFinite(entered) || entered < 0){
+    els.totalFeedback.className = "notice warn";
+    els.totalFeedback.textContent = "Please enter a valid number.";
     return;
   }
-  $("bankTotal").textContent = String(state.bankTotal);
-  $("bankLeft").textContent = String(state.bankLeft);
-  $("bankTotal2").textContent = String(state.bankTotal);
-  $("bankLeft2").textContent = String(state.bankLeft);
+
+  const correct = state.mol.totalVE ?? calcTotalVE(state.mol);
+  if (entered === correct){
+    state.verifiedTotal = true;
+    state.totalVE = correct;
+    state.remaining = correct;
+
+    els.totalFeedback.className = "notice";
+    els.totalFeedback.innerHTML = `✅ Nice. Total valence electrons confirmed: <strong>${correct}</strong>.`;
+
+    els.bankLockedMsg.style.display = "none";
+    renderBank();
+
+    enableCentralSelection();
+  } else {
+    state.verifiedTotal = false;
+    els.totalFeedback.className = "notice warn";
+    els.totalFeedback.innerHTML = `Not quite. Try again. (Hint: add valence electrons for each atom in <strong>${state.mol.formula}</strong>.)`;
+  }
+});
+
+function calcTotalVE(mol){
+  return mol.atoms.reduce((sum, sym) => sum + (VE[sym] ?? 0), 0);
 }
 
-function recalcBank(){
-  if (!state.bankUnlocked){
-    state.bankLeft = state.bankTotal;
-    updateBankUI();
-    return;
-  }
+function enableCentralSelection(){
+  // If diatomic or defined central=null, we treat as “no central”
+  const mol = state.mol;
 
-  let spentBonds = 0;
-  for (const k in state.bondZones){
-    spentBonds += bondCost(state.bondZones[k]);
-  }
-  const spentLP = Object.values(state.lpSlots).length * 2;
-  state.bankLeft = state.bankTotal - spentBonds - spentLP;
-  updateBankUI();
-}
+  els.centralSelect.disabled = false;
+  els.lockCentralBtn.disabled = false;
+  els.resetBtn.disabled = false;
 
-function countLonePairsOnAtom(atomIndex){
-  let c = 0;
-  for (const dir of SLOT_DIRS){
-    if (state.lpSlots[slotKey(atomIndex, dir)] === "lp") c++;
-  }
-  return c;
-}
+  els.centralSelect.innerHTML = `<option value="">Select…</option>`;
 
-function clearBuild(){
-  state.bondZones = {};
-  state.lpSlots = {};
-  recalcBank();
-  renderModel();
-}
-
-// ---------------------------
-// Layout builder
-// ---------------------------
-function buildLayout(mol, centralIdx){
-  // Returns percent positions for atoms + bond zone positions, plus SVG coordinates.
-  // SVG viewBox: 1000x600 (same for all layouts)
-  const vb = { w:1000, h:600 };
-
-  const atoms = {};
-  const bonds = [];
-
-  // diatomic: 2 atoms, one bond between them
-  if (!mol.centralCandidates){
-    atoms[0] = { xPct:35, yPct:50, x:350, y:300 };
-    atoms[1] = { xPct:65, yPct:50, x:650, y:300 };
-    bonds.push({ a:0, b:1, xPct:50, yPct:50, x:500, y:300 });
-    return { atoms, bonds, vb };
-  }
-
-  // central-based
-  const allIdx = mol.atoms.map((_,i)=>i);
-  const terminals = allIdx.filter(i => i !== centralIdx);
-  const tCount = terminals.length;
-
-  // central position
-  atoms[centralIdx] = { xPct:50, yPct:50, x:500, y:300 };
-
-  if (tCount === 2){
-    // linear triatomic / 2 terminals: left and right
-    const left = terminals[0];
-    const right = terminals[1];
-    atoms[left]  = { xPct:30, yPct:50, x:300, y:300 };
-    atoms[right] = { xPct:70, yPct:50, x:700, y:300 };
-
-    bonds.push({ a:centralIdx, b:left,  xPct:40, yPct:50, x:400, y:300 });
-    bonds.push({ a:centralIdx, b:right, xPct:60, yPct:50, x:600, y:300 });
-    return { atoms, bonds, vb };
-  }
-
-  if (tCount === 3){
-    // trigonal-ish: top, left, right around central (simple + clean)
-    const top = terminals[0];
-    const left = terminals[1];
-    const right = terminals[2];
-
-    atoms[top]   = { xPct:50, yPct:22, x:500, y:132 };
-    atoms[left]  = { xPct:30, yPct:62, x:300, y:372 };
-    atoms[right] = { xPct:70, yPct:62, x:700, y:372 };
-
-    bonds.push({ a:centralIdx, b:top,   xPct:50, yPct:36, x:500, y:216 });
-    bonds.push({ a:centralIdx, b:left,  xPct:40, yPct:56, x:400, y:336 });
-    bonds.push({ a:centralIdx, b:right, xPct:60, yPct:56, x:600, y:336 });
-    return { atoms, bonds, vb };
-  }
-
-  // 4 terminals: top, right, bottom, left
-  const top = terminals[0];
-  const right = terminals[1];
-  const bottom = terminals[2];
-  const left = terminals[3];
-
-  atoms[top]    = { xPct:50, yPct:18, x:500, y:108 };
-  atoms[right]  = { xPct:74, yPct:50, x:740, y:300 };
-  atoms[bottom] = { xPct:50, yPct:82, x:500, y:492 };
-  atoms[left]   = { xPct:26, yPct:50, x:260, y:300 };
-
-  bonds.push({ a:centralIdx, b:top,    xPct:50, yPct:34, x:500, y:204 });
-  bonds.push({ a:centralIdx, b:right,  xPct:62, yPct:50, x:620, y:300 });
-  bonds.push({ a:centralIdx, b:bottom, xPct:50, yPct:66, x:500, y:396 });
-  bonds.push({ a:centralIdx, b:left,   xPct:38, yPct:50, x:380, y:300 });
-  return { atoms, bonds, vb };
-}
-
-// ---------------------------
-// Central options + step behavior
-// ---------------------------
-function populateCentralOptions(){
-  const sel = $("centralSelect");
-  sel.innerHTML = "";
-  const opt0 = document.createElement("option");
-  opt0.value = "";
-  opt0.textContent = "Select…";
-  sel.appendChild(opt0);
-
-  state.mol.atoms.forEach((sym, idx) => {
-    if (sym === "H") return; // never central
-    const o = document.createElement("option");
-    o.value = String(idx);
-    o.textContent = `${sym} (atom ${idx+1})`;
-    sel.appendChild(o);
-  });
-}
-
-// ---------------------------
-// Drag setup
-// ---------------------------
-function setupDragToolbox(){
-  document.querySelectorAll(".tool").forEach(tool => {
-    tool.addEventListener("dragstart", (e) => {
-      e.dataTransfer.setData("text/plain", tool.dataset.item);
+  if (mol.atoms.length === 2){
+    // no central
+    els.centralSelect.innerHTML += `<option value="none">No central atom (diatomic)</option>`;
+    els.centralSelect.value = "none";
+    els.centralFeedback.className = "notice";
+    els.centralFeedback.textContent = "This molecule is diatomic. Lock the structure to build the bond + lone pairs.";
+  } else {
+    // allow picking any non-H as central, and include the recommended one (if provided)
+    mol.atoms.forEach((sym, i) => {
+      const disabled = sym === "H" ? "disabled" : "";
+      const tag = (mol.central === i) ? " (recommended)" : "";
+      els.centralSelect.innerHTML += `<option value="${i}" ${disabled}>${sym} (atom ${i+1})${tag}</option>`;
     });
-  });
+    els.centralFeedback.className = "notice";
+    els.centralFeedback.textContent = "Choose the best central atom (H is never central), then lock it.";
+  }
 }
 
-// ---------------------------
-// Model rendering (DOM + SVG)
-// ---------------------------
-function renderModel(){
-  const area = $("modelArea");
-  area.innerHTML = "";
-
-  // SVG bonds
-  const svg = document.createElementNS("http://www.w3.org/2000/svg","svg");
-  svg.setAttribute("class","bondSvg");
-  svg.setAttribute("viewBox","0 0 1000 600");
-  svg.setAttribute("preserveAspectRatio","none");
-  area.appendChild(svg);
-
-  // If not ready, show message
-  if (!state.bankUnlocked){
-    const msg = document.createElement("div");
-    msg.className = "muted";
-    msg.style.padding = "10px";
-    msg.textContent = "Complete Step 0 first, then the build area will unlock.";
-    area.appendChild(msg);
+// ---------- Lock / Reset ----------
+els.lockCentralBtn.addEventListener("click", () => {
+  if (!state.verifiedTotal){
+    els.centralFeedback.className = "notice warn";
+    els.centralFeedback.textContent = "Confirm total valence electrons first.";
+    return;
+  }
+  const v = els.centralSelect.value;
+  if (!v){
+    els.centralFeedback.className = "notice warn";
+    els.centralFeedback.textContent = "Pick a central atom first.";
     return;
   }
 
-  if (state.mol.centralCandidates && !state.locked){
-    const msg = document.createElement("div");
-    msg.className = "muted";
-    msg.style.padding = "10px";
-    msg.textContent = "Lock a central atom to begin building the model.";
-    area.appendChild(msg);
-    return;
-  }
+  state.lockedCentral = true;
 
-  // layout
-  const centralIdx = state.mol.centralCandidates ? state.centralIdx : null;
-  state.layout = buildLayout(state.mol, centralIdx ?? 0);
+  els.checkBtn.disabled = false;
+  els.showBtn.disabled = false;
+  els.clearBtn.disabled = false;
 
-  // draw placed bonds (SVG)
-  for (const bond of state.layout.bonds){
-    const k = keyAB(bond.a, bond.b);
-    const item = state.bondZones[k];
-    const order = bondOrder(item);
-    if (order > 0){
-      drawBond(svg, state.layout.atoms[bond.a], state.layout.atoms[bond.b], order);
-    }
-  }
+  els.feedback.className = "feedback";
+  els.feedback.textContent = "Drag bonds between atoms and lone pairs around atoms. Then click “Check molecule.”";
 
-  // atoms + lone pair slots
-  Object.keys(state.layout.atoms).forEach(k => {
-    const idx = Number(k);
-    createAtom(area, idx, state.mol.atoms[idx], state.layout.atoms[idx], idx === state.centralIdx);
+  buildModel();
+});
+
+els.resetBtn.addEventListener("click", () => {
+  // reset everything for current molecule
+  loadMolecule(state.mol);
+});
+
+els.clearBtn.addEventListener("click", () => {
+  if (!state.lockedCentral) return;
+  state.bonds.clear();
+  state.lonePairs.clear();
+  state.remaining = state.totalVE;
+  renderBank();
+  buildModel(); // rebuild to clear slots and svg
+  els.feedback.className = "feedback";
+  els.feedback.textContent = "Cleared. Rebuild, then check.";
+});
+
+// ---------- Drag + Drop from toolbox ----------
+let dragPayload = null;
+
+document.querySelectorAll(".tool").forEach(tool => {
+  tool.addEventListener("dragstart", (e) => {
+    const type = tool.dataset.type;
+    dragPayload = {
+      type,
+      order: type === "bond" ? Number(tool.dataset.order) : null,
+      cost: Number(tool.dataset.cost),
+      label: tool.querySelector(".toolIcon")?.textContent?.trim() || ""
+    };
+    e.dataTransfer.setData("text/plain", JSON.stringify(dragPayload));
+    e.dataTransfer.effectAllowed = "copy";
+  });
+});
+
+// ---------- Model building ----------
+function buildModel(){
+  const mol = state.mol;
+
+  // compute layout positions for atoms and bond zones
+  state.layout = makeLayout(mol);
+
+  // render atoms + slots + bond zones
+  els.model.innerHTML = "";
+  clearSvg();
+
+  const structure = document.createElement("div");
+  structure.className = "structure";
+
+  // atoms
+  state.layout.atoms.forEach((pos, idx) => {
+    const atom = document.createElement("div");
+    atom.className = "atom";
+    atom.style.left = `${pos.x}px`;
+    atom.style.top  = `${pos.y}px`;
+    atom.textContent = mol.atoms[idx];
+    structure.appendChild(atom);
+
+    // lone pair slots around atom
+    const slots = ["top","right","bottom","left"];
+    slots.forEach((slotName) => {
+      const slot = document.createElement("div");
+      slot.className = "slot";
+      const id = `${idx}:${slotName}`;
+
+      // position around the atom
+      const s = slotOffset(slotName);
+      slot.style.left = `${pos.x + s.dx}px`;
+      slot.style.top  = `${pos.y + s.dy}px`;
+
+      const has = state.lonePairs.has(id);
+      if (has){
+        slot.classList.add("filled");
+        slot.textContent = "••";
+      } else {
+        slot.innerHTML = `<div class="hint">drop</div>`;
+      }
+
+      slot.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "copy";
+      });
+
+      slot.addEventListener("drop", (e) => {
+        e.preventDefault();
+        if (!dragPayload || dragPayload.type !== "lp") return;
+        if (state.lonePairs.has(id)) return; // already filled
+        if (!spend(dragPayload.cost)) return;
+
+        state.lonePairs.set(id, 1);
+        renderBank();
+        buildModel();
+      });
+
+      slot.addEventListener("click", () => {
+        // remove lone pair if present
+        if (!state.lonePairs.has(id)) return;
+        state.lonePairs.delete(id);
+        refund(2);
+        renderBank();
+        buildModel();
+      });
+
+      structure.appendChild(slot);
+    });
   });
 
   // bond zones
-  for (const bond of state.layout.bonds){
-    const k = keyAB(bond.a, bond.b);
-    const item = state.bondZones[k] || null;
-    createBondZone(area, bond.a, bond.b, bond, item);
-  }
-}
+  state.layout.bondZones.forEach((bz) => {
+    const zone = document.createElement("div");
+    const key = bondKey(bz.a, bz.b);
+    const order = state.bonds.get(key) || 0;
 
-function drawBond(svg, p1, p2, order){
-  const dx = p2.x - p1.x;
-  const dy = p2.y - p1.y;
-  const len = Math.hypot(dx, dy) || 1;
-  const nx = -dy / len;
-  const ny =  dx / len;
+    zone.className = "bondZone" + (order ? " filled" : "");
+    zone.style.left = `${bz.x}px`;
+    zone.style.top  = `${bz.y}px`;
 
-  // pull endpoints in so lines don't run through the atom core
-  const pad = 60;
-  const sx = p1.x + (dx/len)*pad;
-  const sy = p1.y + (dy/len)*pad;
-  const ex = p2.x - (dx/len)*pad;
-  const ey = p2.y - (dy/len)*pad;
+    if (bz.vertical) zone.classList.add("vertical");
 
-  const spacing = 12;
-  for (let i=0; i<order; i++){
-    let offset = 0;
-    if (order === 2){
-      offset = (i===0 ? -spacing/2 : spacing/2);
-    } else if (order === 3){
-      offset = (i===0 ? -spacing : i===1 ? 0 : spacing);
-    }
-
-    const x1 = sx + nx*offset;
-    const y1 = sy + ny*offset;
-    const x2 = ex + nx*offset;
-    const y2 = ey + ny*offset;
-
-    const line = document.createElementNS("http://www.w3.org/2000/svg","line");
-    line.setAttribute("x1", x1);
-    line.setAttribute("y1", y1);
-    line.setAttribute("x2", x2);
-    line.setAttribute("y2", y2);
-    line.setAttribute("stroke", "#8C1D40");
-    line.setAttribute("stroke-width", "7");
-    line.setAttribute("stroke-linecap", "round");
-    svg.appendChild(line);
-  }
-}
-
-function createBondZone(parent, a, b, pos, item){
-  const z = document.createElement("div");
-  z.className = "bondZone" + (item ? " filled" : "");
-  z.style.left = `${pos.xPct}%`;
-  z.style.top  = `${pos.yPct}%`;
-
-  if (item){
-    z.innerHTML = `<div class="label">${item==="bond1"?"—":item==="bond2"?"=":"≡"}</div>`;
-  } else {
-    z.innerHTML = `<div class="hint">drop bond</div>`;
-  }
-
-  z.addEventListener("dragover", (e) => e.preventDefault());
-  z.addEventListener("drop", (e) => {
-    e.preventDefault();
-    const dropped = e.dataTransfer.getData("text/plain");
-    if (!dropped) return;
-
-    if (!["bond1","bond2","bond3"].includes(dropped)){
-      setFeedback($("checkFeedback"),
-        `That item doesn’t go between atoms. <strong>Only bonds</strong> go in the bond space. Put <strong>lone pairs</strong> in the atom slots.`,
-        "bad"
-      );
-      return;
-    }
-
-    state.bondZones[keyAB(a,b)] = dropped;
-    recalcBank();
-    renderModel();
-  });
-
-  z.addEventListener("click", () => {
-    const k = keyAB(a,b);
-    if (state.bondZones[k]){
-      delete state.bondZones[k];
-      recalcBank();
-      renderModel();
-    }
-  });
-
-  parent.appendChild(z);
-}
-
-function createAtom(parent, atomIndex, symbol, pos, isCenter){
-  const wrap = document.createElement("div");
-  wrap.className = "atomWrap";
-  wrap.style.left = `${pos.xPct}%`;
-  wrap.style.top  = `${pos.yPct}%`;
-  parent.appendChild(wrap);
-
-  const core = document.createElement("div");
-  core.className = "atomCore" + (isCenter ? " center" : "");
-  core.textContent = symbol;
-  wrap.appendChild(core);
-
-  // lone pair slots
-  SLOT_DIRS.forEach(dir => {
-    const s = document.createElement("div");
-    s.className = `slot slot${dir}`;
-
-    const k = slotKey(atomIndex, dir);
-    const hasLP = state.lpSlots[k] === "lp";
-
-    if (hasLP){
-      s.classList.add("filled");
-      s.innerHTML = `<span style="color:#8C1D40;font-weight:1000;">••</span>`;
+    if (order){
+      zone.innerHTML = `<div class="label">${orderToSymbol(order)}</div>`;
     } else {
-      s.innerHTML = `<span class="muted">drop</span>`;
+      zone.innerHTML = `<div class="hint">DROP<br>BOND</div>`;
     }
 
-    s.addEventListener("dragover", (e) => e.preventDefault());
-    s.addEventListener("drop", (e) => {
+    zone.addEventListener("dragover", (e) => {
       e.preventDefault();
-      const dropped = e.dataTransfer.getData("text/plain");
-      if (!dropped) return;
-
-      if (dropped !== "lp"){
-        setFeedback($("checkFeedback"),
-          `Bonds go <strong>between atoms</strong>. This slot is for <strong>lone pairs</strong> only.`,
-          "bad"
-        );
-        return;
-      }
-
-      // hydrogen rule
-      if (symbol === "H"){
-        setFeedback($("checkFeedback"),
-          `Hydrogen can’t have lone pairs. Try placing that lone pair on the other atom.`,
-          "bad"
-        );
-        return;
-      }
-
-      state.lpSlots[k] = "lp";
-      recalcBank();
-      renderModel();
+      e.dataTransfer.dropEffect = "copy";
     });
 
-    s.addEventListener("click", () => {
-      if (state.lpSlots[k]){
-        delete state.lpSlots[k];
-        recalcBank();
-        renderModel();
+    zone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      if (!dragPayload || dragPayload.type !== "bond") return;
+
+      const newOrder = dragPayload.order;
+      const existing = state.bonds.get(key) || 0;
+
+      // adjust bank based on difference
+      const existingCost = orderCost(existing);
+      const newCost = orderCost(newOrder);
+      const delta = newCost - existingCost;
+
+      if (delta > 0){
+        if (!spend(delta)) return;
+      } else if (delta < 0){
+        refund(-delta);
       }
+
+      state.bonds.set(key, newOrder);
+      renderBank();
+      buildModel();
     });
 
-    wrap.appendChild(s);
+    zone.addEventListener("click", () => {
+      // remove bond if present
+      const existing = state.bonds.get(key) || 0;
+      if (!existing) return;
+      refund(orderCost(existing));
+      state.bonds.delete(key);
+      renderBank();
+      buildModel();
+    });
+
+    structure.appendChild(zone);
   });
+
+  els.model.appendChild(structure);
+
+  // Draw bond lines as SVG for placed bonds
+  drawBondLines();
 }
 
-// ---------------------------
-// Step 0: Count check
-// ---------------------------
-function checkCount(){
-  const raw = $("countInput").value.trim();
-  const n = Number(raw);
+function makeLayout(mol){
+  // structure box is ~620 wide x 300 tall (see CSS)
+  // We'll place central in middle; terminals around depending on count
+  const w = 620, h = 300;
+  const center = { x: (w/2)-28, y: (h/2)-28 }; // atom is 56x56
+  const atoms = Array(mol.atoms.length).fill(null).map(() => ({x:0,y:0}));
 
-  if (!raw || !Number.isFinite(n) || n < 0){
-    setFeedback($("countFeedback"), "Enter a valid number.", "bad");
-    return;
+  // decide central index
+  let cIndex;
+  const cSel = els.centralSelect.value;
+  if (mol.atoms.length === 2){
+    cIndex = 0; // treat atom 0 as left for layout
+  } else if (cSel === "none"){
+    cIndex = 0;
+  } else {
+    cIndex = Number(cSel);
   }
 
-  const correct = state.bankTotal;
-
-  if (n !== correct){
-    setFeedback(
-      $("countFeedback"),
-      `Not yet. Try again. <br><span class="muted">Hint: Add the valence electrons from each atom in <strong>${state.mol.name}</strong>.</span>`,
-      "bad"
-    );
-    return;
+  // place central
+  if (mol.atoms.length >= 3){
+    atoms[cIndex] = {...center};
   }
 
-  state.bankUnlocked = true;
-  state.bankLeft = state.bankTotal;
-  updateBankUI();
-
-  setFeedback($("countFeedback"),
-    `✅ Correct! Total valence electrons = <strong>${correct}</strong>. Your electron bank is now unlocked.`,
-    "good"
-  );
-
-  // If diatomic, skip central atom step
-  if (!state.mol.centralCandidates){
-    $("centralStep").style.display = "none";
-    $("builder").setAttribute("aria-disabled","false");
-    setFeedback($("checkFeedback"),
-      `Now build the structure. (This molecule has <strong>no central atom</strong>.)`,
-      null
-    );
-    renderModel();
-    return;
+  // For diatomic, place two atoms left/right
+  if (mol.atoms.length === 2){
+    atoms[0] = { x: (w/2)-140, y: (h/2)-28 };
+    atoms[1] = { x: (w/2)+84,  y: (h/2)-28 };
+    return {
+      atoms,
+      bondZones: [
+        bondZoneBetween(0,1, atoms[0], atoms[1])
+      ]
+    };
   }
 
-  $("centralStep").style.display = "";
-  $("centralStep").setAttribute("aria-disabled","false");
-  setFeedback($("centralFeedback"),
-    `Now choose the best central atom and click <strong>Lock central atom</strong>.`,
-    null
-  );
-  renderModel();
+  // terminals list (if provided, else all except central)
+  const terminals = mol.terminals ?? mol.atoms.map((_,i)=>i).filter(i=>i!==cIndex);
+
+  // positions around central
+  const offsets = (terminals.length === 2)
+    ? [{dx:-170,dy:0},{dx:170,dy:0}] // linear-ish
+    : (terminals.length === 3)
+      ? [{dx:-170,dy:0},{dx:170,dy:0},{dx:0,dy:150}]
+      : [{dx:-170,dy:0},{dx:170,dy:0},{dx:0,dy:-150},{dx:0,dy:150}];
+
+  terminals.forEach((t,i)=>{
+    atoms[t] = { x: center.x + offsets[i].dx, y: center.y + offsets[i].dy };
+  });
+
+  // bond zones between central and terminals (one per connection)
+  const bondZones = terminals.map((t)=> bondZoneBetween(cIndex, t, atoms[cIndex], atoms[t]));
+
+  return { atoms, bondZones };
 }
 
-function recount(){
-  state.bankUnlocked = false;
-  updateBankUI();
+function bondZoneBetween(a, b, pA, pB){
+  const midX = (pA.x + pB.x)/2;
+  const midY = (pA.y + pB.y)/2;
 
-  $("countInput").value = "";
-  setFeedback($("countFeedback"), "Enter the total valence electrons again.", null);
+  // if mostly vertical, rotate tile
+  const vertical = Math.abs((pA.y - pB.y)) > Math.abs((pA.x - pB.x));
 
-  $("centralStep").setAttribute("aria-disabled","true");
-  $("builder").setAttribute("aria-disabled","true");
-
-  state.centralIdx = null;
-  state.locked = false;
-  clearBuild();
-
-  setFeedback($("centralFeedback"), "Complete Step 0 first.", null);
-  setFeedback($("checkFeedback"), "Complete Step 0 first.", null);
-  renderModel();
+  return {
+    a, b,
+    x: midX + 14, // nudge since atom top-left used
+    y: midY + 6,
+    vertical
+  };
 }
 
-// ---------------------------
-// Step 1: Central atom lock
-// ---------------------------
-function lockCentral(){
-  if (!state.bankUnlocked){
-    setFeedback($("centralFeedback"), "Complete Step 0 first.", "bad");
-    return;
+function slotOffset(name){
+  // relative to atom top-left
+  switch(name){
+    case "top": return {dx:7,  dy:-30};
+    case "right": return {dx:56, dy:13};
+    case "bottom": return {dx:7, dy:56};
+    case "left": return {dx:-42, dy:13};
   }
-  const val = $("centralSelect").value;
-  if (!val){
-    setFeedback($("centralFeedback"), "Select a central atom first.", "bad");
-    return;
-  }
-
-  const idx = Number(val);
-
-  if (state.mol.centralCandidates && !state.mol.centralCandidates.includes(idx)){
-    const hint = bestCentralHint(state.mol);
-    setFeedback($("centralFeedback"),
-      `Not quite. Try again.<br><span class="muted">${hint}</span>`,
-      "bad"
-    );
-    return;
-  }
-
-  state.centralIdx = idx;
-  state.locked = true;
-
-  $("builder").setAttribute("aria-disabled","false");
-  setFeedback($("centralFeedback"),
-    `✅ Central atom locked: <strong>${state.mol.atoms[idx]} (atom ${idx+1})</strong>. Now build the model.`,
-    "good"
-  );
-
-  clearBuild();
+  return {dx:0,dy:0};
 }
 
-function bestCentralHint(mol){
-  // Student-friendly rules of thumb (not formal-charge talk)
-  // - H never central (already enforced)
-  // - Often least electronegative (excluding H) is central (C, then N, then O; halogens rarely central)
-  const syms = mol.atoms.map(s=>s);
-  if (syms.includes("C")) return "Rule of thumb: carbon is often central if it’s in the molecule.";
-  if (syms.includes("N")) return "Rule of thumb: nitrogen is often central (and hydrogen is never central).";
-  if (syms.includes("P")) return "Phosphorus is the central atom here.";
-  return "Try the atom that can make the most bonds (and is not hydrogen).";
+function bondKey(a,b){
+  return (a<b) ? `${a}-${b}` : `${b}-${a}`;
+}
+function orderToSymbol(order){
+  if (order===1) return "—";
+  if (order===2) return "=";
+  if (order===3) return "≡";
+  return "";
+}
+function orderCost(order){
+  if (order===1) return 2;
+  if (order===2) return 4;
+  if (order===3) return 6;
+  return 0;
 }
 
-// ---------------------------
-// Student-friendly checker
-// ---------------------------
-function checkStructure(){
-  if (!state.bankUnlocked){
-    setFeedback($("checkFeedback"), "Complete Step 0 first.", "bad");
-    return;
-  }
-  if (state.mol.centralCandidates && !state.locked){
-    setFeedback($("checkFeedback"), "Lock a central atom first.", "bad");
-    return;
-  }
-  if (state.bankLeft < 0){
-    setFeedback($("checkFeedback"),
-      `Your electron bank went negative. That means you used <strong>too many electrons</strong>. Try removing a bond or a lone pair.`,
-      "bad"
-    );
-    return;
-  }
+// ---------- Bank ----------
+function renderBank(){
+  els.bankTotal.textContent = String(state.totalVE);
+  els.bankRemain.textContent = String(state.remaining);
+}
 
+function spend(n){
+  if (state.remaining == null) return false;
+  if (state.remaining - n < 0){
+    els.feedback.className = "feedback bad";
+    els.feedback.textContent = "You don’t have enough electrons left in your bank for that move. Remove something first.";
+    return false;
+  }
+  state.remaining -= n;
+  return true;
+}
+
+function refund(n){
+  if (state.remaining == null) return;
+  state.remaining += n;
+}
+
+// ---------- SVG bond lines ----------
+function clearSvg(){
+  while (els.bondSvg.firstChild) els.bondSvg.removeChild(els.bondSvg.firstChild);
+}
+
+function drawBondLines(){
+  clearSvg();
   const mol = state.mol;
-  const expB = mol.answer.bonds;
-  const expLP = mol.answer.lonePairs;
+  const layout = state.layout;
+  if (!layout) return;
 
-  // Compare bonds
-  const bondHints = [];
-  const lpHints = [];
+  // bonds exist only for defined bond zones
+  layout.bondZones.forEach((bz) => {
+    const key = bondKey(bz.a, bz.b);
+    const order = state.bonds.get(key) || 0;
+    if (!order) return;
 
-  for (const conn of mol.connections){
-    const k = keyAB(conn[0], conn[1]);
-    const expectedOrder = expB[k] || 0;
-    const gotOrder = bondOrder(state.bondZones[k]);
+    const a = layout.atoms[bz.a];
+    const b = layout.atoms[bz.b];
 
-    if (gotOrder !== expectedOrder){
-      bondHints.push({ k, expectedOrder, gotOrder, a:conn[0], b:conn[1] });
-    }
-  }
+    // atom centers
+    const x1 = a.x + 28;
+    const y1 = a.y + 28;
+    const x2 = b.x + 28;
+    const y2 = b.y + 28;
 
-  // Compare lone pairs
-  for (let i=0; i<mol.atoms.length; i++){
-    const expected = expLP[i] ?? 0;
-    const got = countLonePairsOnAtom(i);
-    if (got !== expected){
-      lpHints.push({ i, sym: mol.atoms[i], expected, got });
-    }
-  }
+    // draw 1-3 parallel lines
+    const lines = bondLineCoords(x1,y1,x2,y2,order);
 
-  // Friendly feedback build
-  if (bondHints.length === 0 && lpHints.length === 0 && state.bankLeft === 0){
-    setFeedback($("checkFeedback"),
-      `✅ Nice work — your Lewis structure checks out, and you used the full electron bank.`,
-      "good"
-    );
-    return;
-  }
-
-  // Build short, student-friendly guidance
-  const lines = [];
-  lines.push(`<strong>Not yet — you’re close.</strong>`);
-
-  // 1) Bank guidance
-  if (state.bankLeft > 0){
-    lines.push(`• You still have <strong>${state.bankLeft} electrons</strong> left. Add <strong>${state.bankLeft/2}</strong> lone pair(s) in a place that makes sense.`);
-  } else if (state.bankLeft === 0){
-    lines.push(`• Your electron bank is used up (that’s good). Now fix where the bonds/lone pairs are.`);
-  }
-
-  // 2) Bonds guidance (high priority)
-  if (bondHints.length){
-    lines.push(`<br><strong>Try fixing bonds first:</strong>`);
-    lines.push(`• ${bondAdvice(mol, bondHints)}`);
-  }
-
-  // 3) Lone pairs guidance
-  if (lpHints.length){
-    lines.push(`<br><strong>Then adjust lone pairs:</strong>`);
-    const friendly = lpHints
-      .slice(0,3)
-      .map(h => {
-        const atomName = `${h.sym} (atom ${h.i+1})`;
-        if (h.got < h.expected) return `Add ${h.expected - h.got} lone pair(s) on <strong>${atomName}</strong>.`;
-        return `Remove ${h.got - h.expected} lone pair(s) from <strong>${atomName}</strong>.`;
-      });
-    lines.push(`• ${friendly.join(" ")}`);
-    if (lpHints.length > 3) lines.push(`• (Keep going — a couple more atoms need lone-pair changes.)`);
-  }
-
-  // 4) molecule-specific gentle reminder
-  lines.push(`<br><span class="muted">${moleculeReminder(mol)}</span>`);
-
-  setFeedback($("checkFeedback"), lines.join("<br>"), "bad");
+    lines.forEach(({ax,ay,bx,by})=>{
+      const line = document.createElementNS("http://www.w3.org/2000/svg","line");
+      line.setAttribute("x1", ax);
+      line.setAttribute("y1", ay);
+      line.setAttribute("x2", bx);
+      line.setAttribute("y2", by);
+      line.setAttribute("stroke", "#8C1D40");
+      line.setAttribute("stroke-width", "4");
+      line.setAttribute("stroke-linecap", "round");
+      els.bondSvg.appendChild(line);
+    });
+  });
 }
 
-function bondAdvice(mol, bondHints){
-  // Very short “what to try” by molecule
-  const name = mol.name;
+function bondLineCoords(x1,y1,x2,y2,order){
+  // perpendicular offset for parallel lines
+  const dx = x2-x1, dy = y2-y1;
+  const len = Math.max(1, Math.hypot(dx,dy));
+  const ux = dx/len, uy = dy/len;
+  // perpendicular unit
+  const px = -uy, py = ux;
 
-  if (name === "CO2") return `CO2 usually has <strong>two double bonds</strong>: O=C=O. Try making both bonds <strong>double</strong>.`;
-  if (name === "O2") return `O2 is usually a <strong>double bond</strong>: O=O.`;
-  if (name === "N2") return `N2 is usually a <strong>triple bond</strong>: N≡N.`;
-  if (name === "HCN") return `HCN is usually <strong>H—C≡N</strong> (single to H, triple to N).`;
-  if (name === "H2O") return `H2O usually has <strong>two single bonds</strong>: H—O—H.`;
-  if (name === "NH3") return `NH3 usually has <strong>three single bonds</strong> to H.`;
-  if (name === "PF3") return `PF3 usually has <strong>three single bonds</strong> from P to F.`;
-  if (name === "CF4") return `CF4 usually has <strong>four single bonds</strong> from C to F.`;
-  if (name === "CBr4") return `CBr4 usually has <strong>four single bonds</strong> from C to Br.`;
-  if (name === "F2" || name === "Br2" || name === "HF" || name === "H2") return `${name} usually has a <strong>single bond</strong>.`;
-
-  // fallback: summarize one wrong bond (simple)
-  const b = bondHints[0];
-  const want = b.expectedOrder;
-  const wantText = want===1 ? "single" : want===2 ? "double" : "triple";
-  return `One bond should be <strong>${wantText}</strong>. Try changing a bond tile and re-check.`;
+  const spacing = 6;
+  if (order === 1){
+    return [{ax:x1,ay:y1,bx:x2,by:y2}];
+  }
+  if (order === 2){
+    return [
+      {ax:x1+px*spacing, ay:y1+py*spacing, bx:x2+px*spacing, by:y2+py*spacing},
+      {ax:x1-px*spacing, ay:y1-py*spacing, bx:x2-px*spacing, by:y2-py*spacing},
+    ];
+  }
+  // triple
+  return [
+    {ax:x1,ay:y1,bx:x2,by:y2},
+    {ax:x1+px*spacing*1.4, ay:y1+py*spacing*1.4, bx:x2+px*spacing*1.4, by:y2+py*spacing*1.4},
+    {ax:x1-px*spacing*1.4, ay:y1-py*spacing*1.4, bx:x2-px*spacing*1.4, by:y2-py*spacing*1.4},
+  ];
 }
 
-function moleculeReminder(mol){
-  const name = mol.name;
-  if (["F2","Br2"].includes(name)) return `Reminder: each halogen usually has <strong>3 lone pairs</strong>.`;
-  if (name === "HF") return `Reminder: hydrogen has <strong>0 lone pairs</strong>, fluorine usually has <strong>3 lone pairs</strong>.`;
-  if (name === "H2") return `Reminder: hydrogen has <strong>0 lone pairs</strong>.`;
-  if (name === "O2") return `Reminder: each oxygen usually has <strong>2 lone pairs</strong>.`;
-  if (name === "N2") return `Reminder: each nitrogen usually has <strong>1 lone pair</strong>.`;
-  if (name === "CO2") return `Reminder: each oxygen usually has <strong>2 lone pairs</strong>.`;
-  if (name === "HCN") return `Reminder: nitrogen usually has <strong>1 lone pair</strong>.`;
-  if (name === "NH3") return `Reminder: nitrogen usually has <strong>1 lone pair</strong>.`;
-  if (name === "H2O") return `Reminder: oxygen usually has <strong>2 lone pairs</strong>.`;
-  if (name === "PF3") return `Reminder: each fluorine usually has <strong>3 lone pairs</strong>, and phosphorus has <strong>1 lone pair</strong>.`;
-  if (name === "CF4") return `Reminder: each fluorine usually has <strong>3 lone pairs</strong>.`;
-  if (name === "CBr4") return `Reminder: each bromine usually has <strong>3 lone pairs</strong>.`;
-  return `Build bonds first, then use remaining electrons as lone pairs.`;
-}
+// ---------- Checking ----------
+els.checkBtn.addEventListener("click", () => {
+  if (!state.lockedCentral) return;
+  const result = checkCurrent();
+  showCheckFeedback(result);
+});
 
-// ---------------------------
-// Show answer
-// ---------------------------
-function showAnswer(){
-  if (!state.bankUnlocked){
-    setFeedback($("checkFeedback"), "Complete Step 0 first.", "bad");
-    return;
-  }
-  if (state.mol.centralCandidates && !state.locked){
-    setFeedback($("checkFeedback"), "Lock a central atom first.", "bad");
-    return;
-  }
+els.showBtn.addEventListener("click", () => {
+  if (!state.lockedCentral) return;
+  applyCorrectModel();
+});
 
-  clearBuild();
+function checkCurrent(){
+  const mol = state.mol;
+  const layout = state.layout;
 
-  // Bonds
-  for (const k in state.mol.answer.bonds){
-    const order = state.mol.answer.bonds[k];
-    state.bondZones[k] = order === 1 ? "bond1" : order === 2 ? "bond2" : "bond3";
-  }
+  // electron usage check
+  const spent = state.totalVE - state.remaining;
 
-  // Lone pairs: place them into available slots (top/right/bottom/left)
-  for (let i=0; i<state.mol.atoms.length; i++){
-    const need = state.mol.answer.lonePairs[i] ?? 0;
-    let placed = 0;
+  // determine bond orders for expected connections
+  const expectedBonds = mol.bonds.map(([a,b,o]) => ({a,b,o}));
 
-    // don't place LP on H (should be 0 anyway)
-    if (state.mol.atoms[i] === "H") continue;
-
-    for (const dir of SLOT_DIRS){
-      if (placed >= need) break;
-      state.lpSlots[slotKey(i, dir)] = "lp";
-      placed++;
-    }
-  }
-
-  recalcBank();
-  renderModel();
-
-  setFeedback($("checkFeedback"),
-    `Here’s one correct model. Try rebuilding it on your own next time (clear placements and try again).`,
-    null
-  );
-}
-
-// ---------------------------
-// Loading
-// ---------------------------
-function loadMolecule(){
-  state.mol = MOLECULES[Math.floor(Math.random() * MOLECULES.length)];
-
-  state.bankTotal = totalValence(state.mol);
-  state.bankLeft = state.bankTotal;
-  state.bankUnlocked = false;
-
-  state.centralIdx = null;
-  state.locked = false;
-
-  state.bondZones = {};
-  state.lpSlots = {};
-
-  $("molTitle").textContent = `Molecule: ${state.mol.name}`;
-  $("molPrompt").textContent = `Count electrons → build bonds → add lone pairs → check.`;
-
-  $("countInput").value = "";
-
-  $("centralStep").style.display = "";
-  $("centralStep").setAttribute("aria-disabled","true");
-  $("builder").setAttribute("aria-disabled","true");
-
-  populateCentralOptions();
-
-  updateBankUI();
-  renderModel();
-
-  setFeedback($("countFeedback"), `Enter the total valence electrons for <strong>${state.mol.name}</strong>, then click <strong>Check my count</strong>.`, null);
-  setFeedback($("centralFeedback"), `Complete Step 0 first.`, null);
-  setFeedback($("checkFeedback"), `Complete Step 0 first.`, null);
-
-  // For diatomic, central step will be hidden after Step 0 check succeeds
-}
-
-// ---------------------------
-// Events
-// ---------------------------
-function init(){
-  setupDragToolbox();
-
-  $("newBtn").addEventListener("click", loadMolecule);
-  $("checkCountBtn").addEventListener("click", checkCount);
-  $("recountBtn").addEventListener("click", recount);
-
-  $("lockCentral").addEventListener("click", lockCentral);
-
-  $("resetBuild").addEventListener("click", () => {
-    if (!state.bankUnlocked) return;
-
-    state.centralIdx = null;
-    state.locked = false;
-
-    $("builder").setAttribute("aria-disabled","true");
-    clearBuild();
-
-    setFeedback($("centralFeedback"), `Choose the central atom again, then lock it.`, null);
-    setFeedback($("checkFeedback"), `Lock a central atom first.`, null);
-    renderModel();
+  // actual bonds on expected edges
+  let bondMismatch = false;
+  expectedBonds.forEach(({a,b,o})=>{
+    const actual = state.bonds.get(bondKey(a,b)) || 0;
+    if (actual !== o) bondMismatch = true;
   });
 
-  $("clearBtn").addEventListener("click", () => {
-    clearBuild();
-    setFeedback($("checkFeedback"), `Cleared placements. Rebuild the structure and check again.`, null);
+  // connectivity check: every atom should have at least one bond unless it's diatomic/hydrogen special
+  let disconnected = false;
+  const bondCountByAtom = Array(mol.atoms.length).fill(0);
+  expectedBonds.forEach(({a,b})=>{
+    const actual = state.bonds.get(bondKey(a,b)) || 0;
+    if (actual>0){
+      bondCountByAtom[a] += actual;
+      bondCountByAtom[b] += actual;
+    }
+  });
+  for (let i=0;i<mol.atoms.length;i++){
+    if (mol.atoms.length===1) continue;
+    if (bondCountByAtom[i]===0) disconnected = true;
+  }
+
+  // octet/duet check based on placed bonds + lone pairs
+  const lpCountByAtom = Array(mol.atoms.length).fill(0);
+  state.lonePairs.forEach((_, key)=>{
+    const [ai] = key.split(":");
+    lpCountByAtom[Number(ai)] += 1;
   });
 
-  $("checkBtn").addEventListener("click", checkStructure);
-  $("showAnswerBtn").addEventListener("click", showAnswer);
+  // approximate electrons around each atom:
+  // each bond order contributes 2 electrons shared; count “ownership” as bondOrder*2 per atom side (Lewis check style)
+  // plus lone pairs *2 electrons
+  const eAround = Array(mol.atoms.length).fill(0);
+  expectedBonds.forEach(({a,b})=>{
+    const actual = state.bonds.get(bondKey(a,b)) || 0;
+    eAround[a] += actual*2;
+    eAround[b] += actual*2;
+  });
+  for (let i=0;i<mol.atoms.length;i++){
+    eAround[i] += lpCountByAtom[i]*2;
+  }
 
-  loadMolecule();
+  let outerShellIssue = false;
+  for (let i=0;i<mol.atoms.length;i++){
+    const sym = mol.atoms[i];
+    const need = neededElectrons(sym);
+    if (eAround[i] !== need) outerShellIssue = true;
+  }
+
+  // remaining electrons sanity
+  const overSpent = state.remaining < 0;
+  const leftover = state.remaining > 0;
+
+  const correct =
+    !bondMismatch &&
+    !disconnected &&
+    !outerShellIssue &&
+    !overSpent &&
+    state.remaining === 0;
+
+  return {
+    correct,
+    bondMismatch,
+    disconnected,
+    outerShellIssue,
+    overSpent,
+    leftover,
+    remaining: state.remaining,
+    spent
+  };
 }
 
-init();
+function showCheckFeedback(r){
+  if (r.correct){
+    els.feedback.className = "feedback good";
+    els.feedback.innerHTML = `✅ <strong>Nice!</strong> This structure matches the target and uses the full electron bank.`;
+    return;
+  }
+
+  // Student-friendly, non-giveaway diagnostics
+  const bullets = [];
+
+  if (r.overSpent){
+    bullets.push("You spent more electrons than you have. Remove a bond or lone pair.");
+  } else if (r.leftover){
+    bullets.push(`You still have <strong>${r.remaining}</strong> electrons left. Use them as lone pairs after your skeleton is connected.`);
+  }
+
+  if (r.disconnected){
+    bullets.push("One or more atoms are not connected by a bond yet. Make sure every atom is attached to the structure.");
+  }
+
+  if (r.bondMismatch){
+    bullets.push("At least one bond type (single/double/triple) doesn’t match what this molecule needs. Re-check whether any bond should be stronger or weaker.");
+  }
+
+  if (r.outerShellIssue){
+    bullets.push("Some atoms do not have a full outer shell yet (H needs 2, most others need 8). Adjust bonds and/or lone pairs.");
+  }
+
+  // If none triggered (rare), generic
+  if (!bullets.length){
+    bullets.push("Something is off. Re-check connectivity, bond types, and outer shells.");
+  }
+
+  els.feedback.className = "feedback bad";
+  els.feedback.innerHTML = `❌ <strong>Not yet — you’re close.</strong><ul class="bullets">${bullets.map(b=>`<li>${b}</li>`).join("")}</ul>`;
+}
+
+function applyCorrectModel(){
+  const mol = state.mol;
+
+  // reset placements + bank to total
+  state.bonds.clear();
+  state.lonePairs.clear();
+  state.remaining = state.totalVE;
+
+  // apply correct bond orders
+  mol.bonds.forEach(([a,b,o])=>{
+    state.bonds.set(bondKey(a,b), o);
+    state.remaining -= orderCost(o);
+  });
+
+  // apply correct lone pairs using up to 4 slots per atom (top/right/bottom/left)
+  const slotOrder = ["top","right","bottom","left"];
+  Object.entries(mol.lonePairs).forEach(([ai, lp])=>{
+    const atomIndex = Number(ai);
+    for (let i=0;i<lp;i++){
+      const slotName = slotOrder[i % 4];
+      state.lonePairs.set(`${atomIndex}:${slotName}`, 1);
+      state.remaining -= 2;
+    }
+  });
+
+  renderBank();
+  buildModel();
+  els.feedback.className = "feedback";
+  els.feedback.textContent = "Correct model shown. Try a new molecule when ready.";
+}
+
+// ---------- init ----------
+pickRandomMol();
