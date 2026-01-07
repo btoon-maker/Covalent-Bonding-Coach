@@ -258,3 +258,34 @@ label{ display:block; font-size:13px; color:#444; margin:8px 0 6px; }
 .hintTitle{ font-weight:1000; margin-bottom:6px; }
 .hintList{ margin:0; padding-left:18px; }
 .hintList li{ font-size:13px; margin:6px 0; }
+/* Make bond-zone text readable + rotate for vertical connections */
+.bondZone{
+  background: rgba(140,29,64,.06);
+  border-style: dashed;
+}
+
+.bondZone .hint{
+  font-size: 13px;
+  font-weight: 900;
+  color: rgba(0,0,0,.60);
+  letter-spacing: .2px;
+  padding: 0 6px;
+  text-align: center;
+  line-height: 1.1;
+}
+
+.bondZone .label{
+  font-weight: 1000;
+  font-size: 26px;
+  color: var(--maroon);
+}
+
+.bondZone.vertical .label{
+  transform: rotate(90deg);
+  display: inline-block;
+}
+
+.bondZone.vertical .hint{
+  transform: rotate(90deg);
+  display: inline-block;
+}
