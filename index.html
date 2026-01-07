@@ -107,8 +107,6 @@
     .bankLabel{ font-weight:900; }
     .bankNum{ font-weight:900; color:var(--maroon); }
 
-    .hidden { display:none !important; }
-
     #centralStep[aria-disabled="true"],
     #builder[aria-disabled="true"]{
       opacity:.55;
@@ -158,6 +156,7 @@
     }
     .lpIcon{ color:var(--maroon); }
     .toolName{ font-weight:900; }
+
     .toolHint{
       border:1px dashed rgba(140,29,64,.35);
       border-radius:16px;
@@ -171,19 +170,10 @@
       border:1px dashed rgba(140,29,64,.35);
       border-radius:16px;
       padding:12px;
-      min-height:360px;
+      min-height:380px;
       position:relative;
       overflow:hidden;
       background:#fff;
-    }
-
-    /* SVG bond layer */
-    .bondSvg{
-      position:absolute;
-      inset:0;
-      width:100%;
-      height:100%;
-      pointer-events:none;
     }
 
     .atomWrap{
@@ -191,6 +181,7 @@
       width:170px;
       height:170px;
       transform:translate(-50%, -50%);
+      pointer-events:none; /* atoms themselves non-interactive; slots handle interaction */
     }
 
     .atomCore{
@@ -204,6 +195,7 @@
       justify-content:center;
       font-weight:1000;
       font-size:22px;
+      pointer-events:none;
     }
 
     .slot{
@@ -219,6 +211,7 @@
       font-weight:900;
       color:#333;
       cursor:pointer;
+      pointer-events:auto;
     }
     .slot.filled{
       border-style:solid;
@@ -230,14 +223,44 @@
     .slotLeft{ left:6px; top:68px; }
     .slotRight{ right:6px; top:68px; }
 
-    .pill{
-      display:inline-block;
-      padding:4px 10px;
-      border-radius:999px;
-      border:1px solid rgba(0,0,0,.12);
+    /* Bond drop zones BETWEEN atoms (single placement per connection) */
+    .bondZone{
+      position:absolute;
+      transform:translate(-50%, -50%);
+      width:92px;
+      height:56px;
+      border-radius:16px;
+      border:1px dashed rgba(140,29,64,.45);
+      background: rgba(140,29,64,.04);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      cursor:pointer;
+      user-select:none;
+    }
+    .bondZone.filled{
+      border-style:solid;
       background:#fff;
-      font-weight:900;
+    }
+    .bondZone .label{
+      font-weight:1000;
+      color:#333;
+      font-size:20px;
+      line-height:1;
+    }
+    .bondZone .hint{
       font-size:12px;
+      color:var(--gray);
+      font-weight:800;
+    }
+
+    /* SVG bond layer */
+    .bondSvg{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      pointer-events:none;
     }
   </style>
 </head>
@@ -346,7 +369,8 @@
       </div>
 
       <div class="muted" style="margin-bottom:10px;">
-        Drag items into slots. Click a filled slot to remove it. Bonds “connect” only when both facing slots match.
+        Drag <strong>one bond tile</strong> into the bond space between atoms. Drag lone pairs into slots around atoms.
+        Click a filled bond zone or slot to remove it.
       </div>
 
       <div class="builderGrid2">
@@ -391,9 +415,9 @@
             </div>
 
             <div class="toolHint">
-              <strong>Connection rule:</strong> to connect center↔terminal, place the same bond type in both facing slots.
+              <strong>Bond rule:</strong> A bond is placed <em>once</em> between atoms (not twice).
               <div class="muted" style="margin-top:6px;">
-                Example: center-right slot “=” and right atom-left slot “=” creates a double bond line.
+                Example: drop “=” in the space between C and O to make a double bond.
               </div>
             </div>
           </div>
@@ -408,15 +432,15 @@
 <script>
   const VALENCE = { H:1, C:4, N:5, O:6, F:7, Cl:7, Br:7, I:7, S:6, P:5 };
 
+  // Current: CO2 (easy to validate + illustrates double bonds)
   const MOLECULES = [
     {
       name: "CO2",
       atoms: ["C","O","O"],
-      // central is definitely carbon
       centralCandidates: [0],
       answer: {
-        bonds: { left: 2, right: 2 },
-        lonePairs: { atomCounts: { 0:0, 1:2, 2:2 } }
+        bonds: { left: 2, right: 2 }, // left bond order, right bond order
+        lonePairs: { atomCounts: { 0:0, 1:2, 2:2 } } // number of lone pairs on each atom
       }
     }
   ];
@@ -427,11 +451,20 @@
     mol: null,
     centralIdx: null,
     locked: false,
-    placements: {},
+
+    // bond placements: "L" = bond between left terminal and center, "R" = between center and right terminal
+    bondL: null, // "bond1" | "bond2" | "bond3"
+    bondR: null,
+
+    // lone pair placements by slot key "atomIndex-dir" => "lp"
+    lpSlots: {},
+
     bankTotal: 0,
     bankLeft: 0,
     bankUnlocked: false,
-    layout: { center:null, left:null, right:null }, // pixel centers of atoms
+
+    // layout points in viewBox coords (1000x600)
+    layout: { center:null, left:null, right:null }
   };
 
   function $(id){ return document.getElementById(id); }
@@ -445,16 +478,22 @@
     return mol.atoms.reduce((sum, sym) => sum + (VALENCE[sym] ?? 0), 0);
   }
 
-  function costOfItem(item){
-    if (item === "lp") return 2;
-    if (item === "bond1") return 2;
-    if (item === "bond2") return 4;
-    if (item === "bond3") return 6;
+  function bondOrder(item){
+    if (item==="bond1") return 1;
+    if (item==="bond2") return 2;
+    if (item==="bond3") return 3;
+    return 0;
+  }
+
+  function bondCost(item){
+    const o = bondOrder(item);
+    if (o===1) return 2;
+    if (o===2) return 4;
+    if (o===3) return 6;
     return 0;
   }
 
   function updateBankUI(){
-    // Step 0 bank box (hidden until unlocked)
     if (!state.bankUnlocked){
       $("bankTotal").textContent = "—";
       $("bankLeft").textContent = "—";
@@ -470,17 +509,21 @@
 
   function recalcBank(){
     if (!state.bankUnlocked){
-      state.bankLeft = state.bankTotal; // keep internal consistent, but don't show
+      state.bankLeft = state.bankTotal;
       updateBankUI();
       return;
     }
-    const spent = Object.values(state.placements).reduce((s, item) => s + costOfItem(item), 0);
-    state.bankLeft = state.bankTotal - spent;
+
+    const spentBonds = bondCost(state.bondL) + bondCost(state.bondR);
+    const spentLP = Object.values(state.lpSlots).length * 2;
+    state.bankLeft = state.bankTotal - spentBonds - spentLP;
     updateBankUI();
   }
 
-  function clearPlacements(){
-    state.placements = {};
+  function clearBuild(){
+    state.bondL = null;
+    state.bondR = null;
+    state.lpSlots = {};
     recalcBank();
     renderModel();
   }
@@ -510,12 +553,14 @@
     state.bankTotal = totalValence(state.mol);
     state.bankLeft = state.bankTotal;
     state.bankUnlocked = false;
-    state.placements = {};
+
+    state.bondL = null;
+    state.bondR = null;
+    state.lpSlots = {};
 
     $("molTitle").textContent = `Molecule: ${state.mol.name}`;
     $("molPrompt").textContent = `Count electrons first, then choose the central atom and build the model.`;
 
-    // lock steps
     $("centralStep").setAttribute("aria-disabled","true");
     $("builder").setAttribute("aria-disabled","true");
 
@@ -558,7 +603,6 @@
       `✅ Correct. Total valence electrons = <strong>${correct}</strong>. Electron bank is now unlocked.`,
       "good"
     );
-
     setFeedback($("centralFeedback"), "Now choose and lock the central atom.", null);
   }
 
@@ -566,11 +610,15 @@
     state.bankUnlocked = false;
     $("countInput").value = "";
     updateBankUI();
+
     $("centralStep").setAttribute("aria-disabled","true");
     $("builder").setAttribute("aria-disabled","true");
+
     state.centralIdx = null;
     state.locked = false;
-    clearPlacements();
+
+    clearBuild();
+
     setFeedback($("countFeedback"), "Enter the total valence electrons again.", null);
     setFeedback($("centralFeedback"), "Complete Step 0 first.", null);
     setFeedback($("checkFeedback"), "Complete Step 0 and lock a central atom first.", null);
@@ -599,9 +647,9 @@
 
     $("builder").setAttribute("aria-disabled","false");
     setFeedback($("centralFeedback"), `✅ Central atom locked: <strong>${state.mol.atoms[idx]} (atom ${idx+1})</strong>. Now build the model.`, "good");
-    setFeedback($("checkFeedback"), "Drag items into slots. Click <strong>Check molecule</strong> when ready.", null);
+    setFeedback($("checkFeedback"), "Drag <strong>one bond tile</strong> into each bond space, and lone pairs into slots.", null);
 
-    clearPlacements();
+    clearBuild();
   }
 
   function setupDragToolbox(){
@@ -616,65 +664,56 @@
     return `${atomIndex}-${dir}`;
   }
 
-  function setSlot(atomIndex, dir, item){
+  function setLonePair(atomIndex, dir){
     if (!state.bankUnlocked){
       setFeedback($("checkFeedback"), "Complete Step 0 first (unlock the electron bank).", "bad");
       return;
     }
-    state.placements[slotKey(atomIndex, dir)] = item;
+    const key = slotKey(atomIndex, dir);
+    state.lpSlots[key] = "lp";
     recalcBank();
     renderModel();
   }
 
-  function removeSlot(atomIndex, dir){
+  function removeLonePair(atomIndex, dir){
     const key = slotKey(atomIndex, dir);
-    if (state.placements[key]){
-      delete state.placements[key];
+    if (state.lpSlots[key]){
+      delete state.lpSlots[key];
       recalcBank();
       renderModel();
     }
   }
 
-  function renderItemIcon(item){
-    if (item === "lp") return `<span style="color:#8C1D40;font-weight:1000;">••</span>`;
-    if (item === "bond1") return `—`;
-    if (item === "bond2") return `=`;
-    if (item === "bond3") return `≡`;
-    return "";
+  function setBond(zone, item){
+    if (!state.bankUnlocked){
+      setFeedback($("checkFeedback"), "Complete Step 0 first (unlock the electron bank).", "bad");
+      return;
+    }
+    if (item !== "bond1" && item !== "bond2" && item !== "bond3"){
+      setFeedback($("checkFeedback"), "Only bond tiles go in the bond space. Put lone pairs in atom slots.", "bad");
+      return;
+    }
+
+    if (zone === "L"){
+      state.bondL = item;
+    } else {
+      state.bondR = item;
+    }
+    recalcBank();
+    renderModel();
   }
 
-  function toOrder(item){
-    if (item==="bond1") return 1;
-    if (item==="bond2") return 2;
-    if (item==="bond3") return 3;
-    return 0;
-  }
-
-  function bondOrderBetweenCentralAnd(atomIndex){
-    const central = state.centralIdx;
-    const terminals = state.mol.atoms.map((_,i)=>i).filter(i=>i!==central);
-    const leftIdx = terminals[0];
-    const rightIdx = terminals[1];
-
-    if (atomIndex === leftIdx){
-      const a = toOrder(state.placements[slotKey(central, "Left")]);
-      const b = toOrder(state.placements[slotKey(leftIdx, "Right")]);
-      if (a===0 && b===0) return {order:0,mismatch:false};
-      return {order:a,mismatch:(a!==b || a===0)};
-    }
-    if (atomIndex === rightIdx){
-      const a = toOrder(state.placements[slotKey(central, "Right")]);
-      const b = toOrder(state.placements[slotKey(rightIdx, "Left")]);
-      if (a===0 && b===0) return {order:0,mismatch:false};
-      return {order:a,mismatch:(a!==b || a===0)};
-    }
-    return {order:0,mismatch:false};
+  function removeBond(zone){
+    if (zone === "L") state.bondL = null;
+    else state.bondR = null;
+    recalcBank();
+    renderModel();
   }
 
   function countLonePairsOnAtom(atomIndex){
     let c = 0;
     for (const dir of SLOT_DIRS){
-      if (state.placements[slotKey(atomIndex, dir)] === "lp") c++;
+      if (state.lpSlots[slotKey(atomIndex, dir)] === "lp") c++;
     }
     return c;
   }
@@ -683,7 +722,7 @@
     const area = $("modelArea");
     area.innerHTML = "";
 
-    // bond svg layer (always present once building is enabled)
+    // SVG bond layer
     const svg = document.createElementNS("http://www.w3.org/2000/svg","svg");
     svg.setAttribute("class","bondSvg");
     svg.setAttribute("viewBox","0 0 1000 600");
@@ -706,57 +745,48 @@
     const leftIdx = terminals[0];
     const rightIdx = terminals[1];
 
-    // positions in percent for divs, but also record pixel-ish points for SVG (1000x600)
-    const centerP = { x: 500, y: 300 };
-    const leftP   = { x: 250, y: 300 };
-    const rightP  = { x: 750, y: 300 };
+    // viewBox coords
+    state.layout.center = { x: 500, y: 300 };
+    state.layout.left   = { x: 250, y: 300 };
+    state.layout.right  = { x: 750, y: 300 };
 
-    state.layout.center = centerP;
-    state.layout.left = leftP;
-    state.layout.right = rightP;
+    // draw bonds if present
+    drawBond(svg, state.layout.left, state.layout.center, bondOrder(state.bondL));
+    drawBond(svg, state.layout.center, state.layout.right, bondOrder(state.bondR));
 
-    // draw connected bonds (only if BOTH facing slots match)
-    drawBondIfConnected(svg, leftIdx, "left");
-    drawBondIfConnected(svg, rightIdx, "right");
-
-    // atoms (HTML) positioned relative to container (percent based)
-    createAtom(area, state.centralIdx, state.mol.atoms[state.centralIdx], { x: 50, y: 50 }, true);
+    // atoms
     createAtom(area, leftIdx, state.mol.atoms[leftIdx], { x: 25, y: 50 }, false);
+    createAtom(area, state.centralIdx, state.mol.atoms[state.centralIdx], { x: 50, y: 50 }, true);
     createAtom(area, rightIdx, state.mol.atoms[rightIdx], { x: 75, y: 50 }, false);
+
+    // bond zones between atoms (HTML drop targets)
+    createBondZone(area, "L", { x: 37.5, y: 50 }, state.bondL);
+    createBondZone(area, "R", { x: 62.5, y: 50 }, state.bondR);
   }
 
-  function drawBondIfConnected(svg, terminalIdx, side){
-    const ord = bondOrderBetweenCentralAnd(terminalIdx);
-    if (ord.mismatch || ord.order === 0) return;
+  function drawBond(svg, p1, p2, order){
+    if (!order) return;
 
-    const c = state.layout.center;
-    const t = (side === "left") ? state.layout.left : state.layout.right;
-
-    // draw 1/2/3 parallel lines
-    const dx = t.x - c.x;
-    const dy = t.y - c.y;
+    const dx = p2.x - p1.x;
+    const dy = p2.y - p1.y;
     const len = Math.hypot(dx, dy) || 1;
-    const nx = -dy / len; // normal unit vector
+    const nx = -dy / len;
     const ny =  dx / len;
 
-    // start/end a bit away from cores so it feels like it touches atoms
-    const pad = 55;
-    const sx = c.x + (dx/len)*pad;
-    const sy = c.y + (dy/len)*pad;
-    const ex = t.x - (dx/len)*pad;
-    const ey = t.y - (dy/len)*pad;
+    // pull ends in a bit so lines don't run through the atom cores
+    const pad = 60;
+    const sx = p1.x + (dx/len)*pad;
+    const sy = p1.y + (dy/len)*pad;
+    const ex = p2.x - (dx/len)*pad;
+    const ey = p2.y - (dy/len)*pad;
 
-    const spacing = 10; // separation between lines
-    const lines = ord.order;
-
-    for (let i=0; i<lines; i++){
+    const spacing = 12;
+    for (let i=0; i<order; i++){
       let offset = 0;
-      if (lines === 2){
+      if (order === 2){
         offset = (i===0 ? -spacing/2 : spacing/2);
-      } else if (lines === 3){
+      } else if (order === 3){
         offset = (i===0 ? -spacing : i===1 ? 0 : spacing);
-      } else {
-        offset = 0;
       }
 
       const x1 = sx + nx*offset;
@@ -770,17 +800,44 @@
       line.setAttribute("x2", x2);
       line.setAttribute("y2", y2);
       line.setAttribute("stroke", "#8C1D40");
-      line.setAttribute("stroke-width", "6");
+      line.setAttribute("stroke-width", "7");
       line.setAttribute("stroke-linecap", "round");
       svg.appendChild(line);
     }
+  }
+
+  function createBondZone(parent, zoneId, posPct, item){
+    const z = document.createElement("div");
+    z.className = "bondZone" + (item ? " filled" : "");
+    z.style.left = `${posPct.x}%`;
+    z.style.top  = `${posPct.y}%`;
+
+    if (item){
+      z.innerHTML = `<div class="label">${item==="bond1"?"—":item==="bond2"?"=":"≡"}</div>`;
+    } else {
+      z.innerHTML = `<div class="hint">drop bond</div>`;
+    }
+
+    z.addEventListener("dragover", (e) => e.preventDefault());
+    z.addEventListener("drop", (e) => {
+      e.preventDefault();
+      const dropped = e.dataTransfer.getData("text/plain");
+      if (!dropped) return;
+      setBond(zoneId, dropped);
+    });
+
+    z.addEventListener("click", () => {
+      if (item) removeBond(zoneId);
+    });
+
+    parent.appendChild(z);
   }
 
   function createAtom(parent, atomIndex, symbol, posPct, isCenter){
     const wrap = document.createElement("div");
     wrap.className = "atomWrap";
     wrap.style.left = `${posPct.x}%`;
-    wrap.style.top = `${posPct.y}%`;
+    wrap.style.top  = `${posPct.y}%`;
     parent.appendChild(wrap);
 
     const core = document.createElement("div");
@@ -795,12 +852,13 @@
     SLOT_DIRS.forEach(dir => {
       const slot = document.createElement("div");
       slot.className = `slot slot${dir}`;
-      const key = slotKey(atomIndex, dir);
-      const item = state.placements[key];
 
-      if (item){
+      const key = slotKey(atomIndex, dir);
+      const hasLP = state.lpSlots[key] === "lp";
+
+      if (hasLP){
         slot.classList.add("filled");
-        slot.innerHTML = renderItemIcon(item);
+        slot.innerHTML = `<span style="color:#8C1D40;font-weight:1000;">••</span>`;
       } else {
         slot.innerHTML = `<span class="muted">drop</span>`;
       }
@@ -808,11 +866,17 @@
       slot.addEventListener("dragover", (e) => e.preventDefault());
       slot.addEventListener("drop", (e) => {
         e.preventDefault();
-        const itemDropped = e.dataTransfer.getData("text/plain");
-        if (!itemDropped) return;
-        setSlot(atomIndex, dir, itemDropped);
+        const dropped = e.dataTransfer.getData("text/plain");
+        if (!dropped) return;
+
+        if (dropped !== "lp"){
+          setFeedback($("checkFeedback"), "Put bonds in the <strong>bond space between atoms</strong>. Put lone pairs in atom slots.", "bad");
+          return;
+        }
+        setLonePair(atomIndex, dir);
       });
-      slot.addEventListener("click", () => removeSlot(atomIndex, dir));
+
+      slot.addEventListener("click", () => removeLonePair(atomIndex, dir));
       wrap.appendChild(slot);
     });
   }
@@ -831,36 +895,28 @@
       return;
     }
 
-    const central = state.centralIdx;
-    const terminals = state.mol.atoms.map((_,i)=>i).filter(i=>i!==central);
+    const allIdx = state.mol.atoms.map((_, i) => i);
+    const terminals = allIdx.filter(i => i !== state.centralIdx);
     const leftIdx = terminals[0];
     const rightIdx = terminals[1];
 
-    const leftBond = bondOrderBetweenCentralAnd(leftIdx);
-    const rightBond = bondOrderBetweenCentralAnd(rightIdx);
-
-    if (leftBond.mismatch || rightBond.mismatch){
-      setFeedback($("checkFeedback"),
-        "❌ Bonds must match in the two facing slots (center↔terminal).",
-        "bad"
-      );
-      return;
-    }
-
     const req = state.mol.answer.bonds;
+    const gotL = bondOrder(state.bondL);
+    const gotR = bondOrder(state.bondR);
+
     const neededLP = state.mol.answer.lonePairs.atomCounts;
 
     const errors = [];
-    if (leftBond.order !== req.left) errors.push(`Left bond should be <strong>order ${req.left}</strong>.`);
-    if (rightBond.order !== req.right) errors.push(`Right bond should be <strong>order ${req.right}</strong>.`);
+    if (gotL !== req.left) errors.push(`Left bond should be <strong>order ${req.left}</strong>.`);
+    if (gotR !== req.right) errors.push(`Right bond should be <strong>order ${req.right}</strong>.`);
 
-    const lpCentral = countLonePairsOnAtom(central);
+    const lpCentral = countLonePairsOnAtom(state.centralIdx);
     const lpLeft = countLonePairsOnAtom(leftIdx);
     const lpRight = countLonePairsOnAtom(rightIdx);
 
-    if (lpCentral !== neededLP[central]) errors.push(`Central atom needs <strong>${neededLP[central]}</strong> lone pairs (you have ${lpCentral}).`);
-    if (lpLeft !== neededLP[leftIdx]) errors.push(`Left atom needs <strong>${neededLP[leftIdx]}</strong> lone pairs (you have ${lpLeft}).`);
-    if (lpRight !== neededLP[rightIdx]) errors.push(`Right atom needs <strong>${neededLP[rightIdx]}</strong> lone pairs (you have ${lpRight}).`);
+    if (lpCentral !== (neededLP[state.centralIdx]||0)) errors.push(`Central atom needs <strong>${neededLP[state.centralIdx]||0}</strong> lone pairs (you have ${lpCentral}).`);
+    if (lpLeft !== (neededLP[leftIdx]||0)) errors.push(`Left atom needs <strong>${neededLP[leftIdx]||0}</strong> lone pairs (you have ${lpLeft}).`);
+    if (lpRight !== (neededLP[rightIdx]||0)) errors.push(`Right atom needs <strong>${neededLP[rightIdx]||0}</strong> lone pairs (you have ${lpRight}).`);
 
     if (state.bankLeft !== 0) errors.push(`You should use the full electron bank (remaining: <strong>${state.bankLeft}</strong>).`);
 
@@ -882,21 +938,17 @@
       return;
     }
 
-    clearPlacements();
+    clearBuild();
 
-    const central = state.centralIdx;
-    const terminals = state.mol.atoms.map((_,i)=>i).filter(i=>i!==central);
+    const allIdx = state.mol.atoms.map((_, i) => i);
+    const terminals = allIdx.filter(i => i !== state.centralIdx);
     const leftIdx = terminals[0];
     const rightIdx = terminals[1];
 
     const reqB = state.mol.answer.bonds;
     const toItem = (o)=> o===1?"bond1": o===2?"bond2":"bond3";
-
-    state.placements[slotKey(central, "Left")] = toItem(reqB.left);
-    state.placements[slotKey(leftIdx, "Right")] = toItem(reqB.left);
-
-    state.placements[slotKey(central, "Right")] = toItem(reqB.right);
-    state.placements[slotKey(rightIdx, "Left")] = toItem(reqB.right);
+    state.bondL = toItem(reqB.left);
+    state.bondR = toItem(reqB.right);
 
     const lpCounts = state.mol.answer.lonePairs.atomCounts;
 
@@ -905,14 +957,16 @@
       for (const dir of SLOT_DIRS){
         if (need <= 0) break;
         if (dir === avoidDir) continue;
-        state.placements[slotKey(atomIndex, dir)] = "lp";
+        state.lpSlots[slotKey(atomIndex, dir)] = "lp";
         need--;
       }
     }
 
-    fillLP(central, null);
-    fillLP(leftIdx, "Right");
-    fillLP(rightIdx, "Left");
+    // For linear triatomic: keep lone pairs off the bond-facing direction if possible,
+    // but since LP slots are generic, this is just aesthetic.
+    fillLP(state.centralIdx, null);
+    fillLP(leftIdx, null);
+    fillLP(rightIdx, null);
 
     recalcBank();
     renderModel();
@@ -934,12 +988,12 @@
       $("builder").setAttribute("aria-disabled","true");
       setFeedback($("centralFeedback"), "Choose the central atom again, then lock it.", null);
       setFeedback($("checkFeedback"), "Lock a central atom first.", null);
-      clearPlacements();
+      clearBuild();
       renderModel();
     });
 
     $("clearBtn").addEventListener("click", () => {
-      clearPlacements();
+      clearBuild();
       setFeedback($("checkFeedback"), "Cleared placements. Rebuild the model.", null);
     });
 
