@@ -1,119 +1,708 @@
-e html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Covalent Bonding Coach</title>
-  <link rel="stylesheet" href="lewis.css"/>
+
+  <style>
+    :root{
+      --maroon:#8C1D40;
+      --gold:#FFC627;
+      --black:#111;
+      --gray:#6f6f6f;
+      --border:#e6e6e6;
+      --bg:#fafafa;
+      --card:#fff;
+    }
+    *{ box-sizing:border-box; }
+    html,body{ margin:0; padding:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; color:var(--black); background:var(--bg); }
+
+    .topbar{
+      background:linear-gradient(90deg,var(--maroon),#6f1732);
+      color:#fff;
+      border-bottom:4px solid var(--gold);
+      padding:16px;
+    }
+    .wrap{ max-width:1100px; margin:0 auto; }
+    .brand{ display:flex; gap:12px; align-items:center; }
+    .mark{ width:40px; height:40px; background:var(--gold); border-radius:10px; }
+    h1{ margin:0; font-size:22px; }
+    .subtitle{ margin:2px 0 0; opacity:.9; font-size:13px; }
+
+    .container{ max-width:1100px; margin:18px auto; padding:0 16px 60px; }
+
+    .card{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:18px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.08);
+      padding:16px;
+    }
+
+    .row-between{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+    h2{ margin:0; font-size:18px; }
+    h3{ margin:0 0 8px; font-size:15px; }
+
+    .step{
+      margin-top:14px;
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:12px;
+      background:#fff;
+    }
+
+    .muted{ color:var(--gray); font-size:13px; }
+
+    .grid2{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+    @media (max-width: 900px){ .grid2{ grid-template-columns:1fr; } }
+
+    label{ display:block; font-size:13px; color:#444; margin:8px 0 6px; }
+    select, button{
+      font-family:inherit;
+    }
+    .input{
+      width:100%;
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:10px 12px;
+      font-size:14px;
+      outline:none;
+    }
+    .input:focus{ border-color:var(--maroon); box-shadow:0 0 0 3px rgba(140,29,64,.15); }
+
+    .actions{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
+
+    .btn{
+      border:1px solid var(--border);
+      background:#fff;
+      padding:10px 14px;
+      border-radius:14px;
+      font-weight:800;
+      cursor:pointer;
+    }
+    .btn.primary{ background:var(--maroon); color:#fff; border-color:transparent; }
+    .btn:hover{ background:#f6f6f6; }
+    .btn.primary:hover{ filter:brightness(1.05); }
+
+    .feedback{
+      margin-top:12px;
+      padding:12px;
+      border-radius:16px;
+      border:1px solid var(--border);
+      background:#fafafa;
+      min-height:52px;
+    }
+    .good{ border-color: rgba(120,190,32,.35); background: rgba(120,190,32,.12); }
+    .bad{ border-color: rgba(231,73,115,.35); background: rgba(231,73,115,.10); }
+
+    .bankBox{
+      border:1px solid rgba(0,0,0,.10);
+      border-radius:16px;
+      padding:12px;
+      background: rgba(0,0,0,.03);
+    }
+    .bankLine{ display:flex; justify-content:space-between; align-items:center; }
+    .bankLabel{ font-weight:900; }
+    .bankNum{ font-weight:900; color:var(--maroon); }
+
+    #builder[aria-disabled="true"]{
+      opacity:.55;
+      pointer-events:none;
+    }
+
+    .builderGrid2{
+      display:grid;
+      grid-template-columns: 1fr 320px;
+      gap:12px;
+    }
+    @media (max-width: 980px){
+      .builderGrid2{ grid-template-columns: 1fr; }
+    }
+
+    .panel{
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:12px;
+      background:#fff;
+    }
+    .panelTitle{
+      font-weight:900;
+      margin-bottom:10px;
+    }
+
+    /* Toolbox */
+    .toolbox{ display:grid; gap:10px; }
+    .tool{
+      display:flex; gap:12px; align-items:center;
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:10px;
+      background:#fafafa;
+      cursor:grab;
+      user-select:none;
+    }
+    .tool:active{ cursor:grabbing; }
+    .toolIcon{
+      width:48px; height:48px;
+      border-radius:14px;
+      display:flex; align-items:center; justify-content:center;
+      border:1px solid rgba(0,0,0,.12);
+      background:#fff;
+      font-weight:900;
+      font-size:20px;
+    }
+    .lpIcon{ color:var(--maroon); }
+    .toolName{ font-weight:900; }
+    .toolHint{
+      border:1px dashed rgba(140,29,64,.35);
+      border-radius:16px;
+      padding:10px;
+      background: rgba(140,29,64,.05);
+      font-size:13px;
+    }
+
+    /* Model */
+    .modelArea{
+      border:1px dashed rgba(140,29,64,.35);
+      border-radius:16px;
+      padding:12px;
+      min-height:360px;
+      position:relative;
+      overflow:hidden;
+    }
+
+    .atomWrap{
+      position:absolute;
+      width:170px;
+      height:170px;
+    }
+
+    .atomCore{
+      position:absolute;
+      inset:52px;
+      border-radius:18px;
+      border:1px solid var(--border);
+      background:#fff;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:1000;
+      font-size:22px;
+    }
+
+    .slot{
+      position:absolute;
+      width:54px;
+      height:34px;
+      border-radius:12px;
+      border:1px dashed rgba(140,29,64,.35);
+      background: rgba(255,255,255,.85);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:900;
+      color:#333;
+    }
+    .slot.filled{
+      border-style:solid;
+      background:#fff;
+    }
+
+    .slotTop{ top:10px; left:58px; }
+    .slotBottom{ bottom:10px; left:58px; }
+    .slotLeft{ left:6px; top:68px; }
+    .slotRight{ right:6px; top:68px; }
+  </style>
 </head>
+
 <body>
-  <header class="topbar">
-    <div class="wrap">
-      <div class="brand">
-        <div class="mark" aria-hidden="true"></div>
-        <div>
-          <h1>Covalent Bonding Coach</h1>
-          <p class="subtitle">Drag bonds + lone pairs into the model. Watch the electron bank change.</p>
-        </div>
+<header class="topbar">
+  <div class="wrap">
+    <div class="brand">
+      <div class="mark" aria-hidden="true"></div>
+      <div>
+        <h1>Covalent Bonding Coach</h1>
+        <p class="subtitle">Drag bonds + lone pairs into the model. Watch the electron bank change.</p>
       </div>
     </div>
-  </header>
+  </div>
+</header>
 
-  <main class="container">
-    <section class="card">
-      <div class="row-between">
+<main class="container">
+  <section class="card">
+    <div class="row-between">
+      <div>
+        <h2 id="molTitle">Molecule: —</h2>
+        <div class="muted" id="molPrompt">New molecule loading…</div>
+      </div>
+      <button class="btn" id="newBtn">New molecule</button>
+    </div>
+
+    <div class="step" id="centralStep">
+      <h3>Step 1: Choose the central atom</h3>
+      <p class="muted">Pick the best central atom (hydrogen is never central). Then build the model.</p>
+
+      <div class="grid2">
         <div>
-          <h2 id="molTitle">Molecule: —</h2>
-          <div class="muted" id="molPrompt">New molecule loading…</div>
-        </div>
-        <button class="btn" id="newBtn">New molecule</button>
-      </div>
-
-      <!-- Step 1: central atom selection -->
-      <div class="step" id="centralStep">
-        <h3>Step 1: Choose the central atom</h3>
-        <p class="muted">Pick the best central atom (hydrogen is never central). Then build the model.</p>
-
-        <div class="grid2">
-          <div>
-            <label for="centralSelect">Central atom</label>
-            <select id="centralSelect" class="input"></select>
-            <div class="actions">
-              <button class="btn primary" id="lockCentral">Lock central atom</button>
-              <button class="btn" id="resetBuild">Reset build</button>
-            </div>
-          </div>
-
-          <div class="bankBox">
-            <div class="bankLine">
-              <span class="bankLabel">Electron bank:</span>
-              <span class="bankNum" id="bankTotal">—</span>
-            </div>
-            <div class="bankLine">
-              <span class="bankLabel">Remaining:</span>
-              <span class="bankNum" id="bankLeft">—</span>
-            </div>
-            <div class="muted" style="margin-top:6px;">
-              Bonds spend electrons (single=2, double=4, triple=6). Lone pairs spend 2.
-            </div>
-          </div>
-        </div>
-
-        <div id="centralFeedback" class="feedback" aria-live="polite"></div>
-      </div>
-
-      <!-- Builder -->
-      <div class="step" id="builder" aria-disabled="true">
-        <div class="row-between">
-          <h3>Step 2: Build the model</h3>
+          <label for="centralSelect">Central atom</label>
+          <select id="centralSelect" class="input"></select>
           <div class="actions">
-            <button class="btn primary" id="checkBtn">Check molecule</button>
-            <button class="btn" id="showAnswerBtn">Show correct model</button>
-            <button class="btn" id="clearBtn">Clear placements</button>
+            <button class="btn primary" id="lockCentral">Lock central atom</button>
+            <button class="btn" id="resetBuild">Reset build</button>
           </div>
         </div>
 
-        <div class="muted" style="margin-bottom:10px;">
-          Drag items from the toolbox into the slots around atoms. Some slots won’t be used for some molecules.
+        <div class="bankBox">
+          <div class="bankLine">
+            <span class="bankLabel">Electron bank:</span>
+            <span class="bankNum" id="bankTotal">—</span>
+          </div>
+          <div class="bankLine">
+            <span class="bankLabel">Remaining:</span>
+            <span class="bankNum" id="bankLeft">—</span>
+          </div>
+          <div class="muted" style="margin-top:6px;">
+            Bonds spend electrons (single=2, double=4, triple=6). Lone pairs spend 2.
+          </div>
+        </div>
+      </div>
+
+      <div id="centralFeedback" class="feedback" aria-live="polite"></div>
+    </div>
+
+    <div class="step" id="builder" aria-disabled="true">
+      <div class="row-between">
+        <h3>Step 2: Build the model</h3>
+        <div class="actions">
+          <button class="btn primary" id="checkBtn">Check molecule</button>
+          <button class="btn" id="showAnswerBtn">Show correct model</button>
+          <button class="btn" id="clearBtn">Clear placements</button>
+        </div>
+      </div>
+
+      <div class="muted" style="margin-bottom:10px;">
+        Drag items from the toolbox into the slots around atoms. Click a filled slot to remove it.
+      </div>
+
+      <div class="builderGrid2">
+        <div class="panel">
+          <div class="panelTitle">Model</div>
+          <div id="modelArea" class="modelArea"></div>
         </div>
 
-        <div class="builderGrid2">
-          <!-- Model -->
-          <div class="panel">
-            <div class="panelTitle">Model</div>
-            <div id="modelArea" class="modelArea"></div>
+        <div class="panel">
+          <div class="panelTitle">Toolbox</div>
+          <div class="toolbox">
+            <div class="tool" draggable="true" data-item="bond1">
+              <div class="toolIcon">—</div>
+              <div>
+                <div class="toolName">Single bond</div>
+                <div class="muted">Costs 2 e⁻</div>
+              </div>
+            </div>
+
+            <div class="tool" draggable="true" data-item="bond2">
+              <div class="toolIcon">=</div>
+              <div>
+                <div class="toolName">Double bond</div>
+                <div class="muted">Costs 4 e⁻</div>
+              </div>
+            </div>
+
+            <div class="tool" draggable="true" data-item="bond3">
+              <div class="toolIcon">≡</div>
+              <div>
+                <div class="toolName">Triple bond</div>
+                <div class="muted">Costs 6 e⁻</div>
+              </div>
+            </div>
+
+            <div class="tool" draggable="true" data-item="lp">
+              <div class="toolIcon lpIcon">••</div>
+              <div>
+                <div class="toolName">Lone pair</div>
+                <div class="muted">Costs 2 e⁻</div>
+              </div>
+            </div>
+
+            <div class="toolHint">Tip: Bonds must match on both sides of a connection (facing slots).</div>
           </div>
+        </div>
+      </div>
 
-          <!-- Toolbox -->
-          <div class="panel">
-            <div class="panelTitle">Toolbox</div>
+      <div id="checkFeedback" class="feedback" aria-live="polite"></div>
+    </div>
+  </section>
+</main>
 
-            <div class="toolbox">
-              <div class="tool" draggable="true" data-item="bond1" aria-label="Single bond">
-                <div class="toolIcon bondIcon">—</div>
-                <div class="toolText">
-                  <div class="toolName">Single bond</div>
-                  <div class="muted">Costs 2 e⁻</div>
-                </div>
-              </div>
+<script>
+  const VALENCE = { H:1, C:4, N:5, O:6, F:7, Cl:7, Br:7, I:7, S:6, P:5 };
 
-              <div class="tool" draggable="true" data-item="bond2" aria-label="Double bond">
-                <div class="toolIcon bondIcon">=</div>
-                <div class="toolText">
-                  <div class="toolName">Double bond</div>
-                  <div class="muted">Costs 4 e⁻</div>
-                </div>
-              </div>
+  const MOLECULES = [
+    {
+      name: "CO2",
+      atoms: ["C","O","O"],
+      centralCandidates: [0],
+      answer: {
+        bonds: { left: 2, right: 2 },
+        lonePairs: { atomCounts: { 0:0, 1:2, 2:2 } }
+      }
+    }
+  ];
 
-              <div class="tool" draggable="true" data-item="bond3" aria-label="Triple bond">
-                <div class="toolIcon bondIcon">≡</div>
-                <div class="toolText">
-                  <div class="toolName">Triple bond</div>
-                  <div class="muted">Costs 6 e⁻</div>
-                </div>
-              </div>
+  const SLOT_DIRS = ["Top","Right","Bottom","Left"];
 
-              <div class="tool" draggable="true" data-item="lp" aria-label="Lone pair">
-                <div class="toolIcon lpIcon">••</div>
-                <div class="toolText">
-                  <div class="
+  const state = {
+    mol: null,
+    centralIdx: null,
+    locked: false,
+    placements: {},
+    bankTotal: 0,
+    bankLeft: 0,
+  };
+
+  function $(id){ return document.getElementById(id); }
+
+  function setFeedback(el, msg, kind=null){
+    el.className = "feedback" + (kind==="good" ? " good" : kind==="bad" ? " bad" : "");
+    el.innerHTML = msg;
+  }
+
+  function totalValence(mol){
+    return mol.atoms.reduce((sum, sym) => sum + (VALENCE[sym] ?? 0), 0);
+  }
+
+  function costOfItem(item){
+    if (item === "lp") return 2;
+    if (item === "bond1") return 2;
+    if (item === "bond2") return 4;
+    if (item === "bond3") return 6;
+    return 0;
+  }
+
+  function recalcBank(){
+    const spent = Object.values(state.placements).reduce((s, item) => s + costOfItem(item), 0);
+    state.bankLeft = state.bankTotal - spent;
+    $("bankTotal").textContent = String(state.bankTotal);
+    $("bankLeft").textContent = String(state.bankLeft);
+  }
+
+  function clearPlacements(){
+    state.placements = {};
+    recalcBank();
+    renderModel();
+  }
+
+  function centralOptions(){
+    const sel = $("centralSelect");
+    sel.innerHTML = "";
+    const opt0 = document.createElement("option");
+    opt0.value = "";
+    opt0.textContent = "Select…";
+    sel.appendChild(opt0);
+
+    state.mol.atoms.forEach((sym, idx) => {
+      if (sym === "H") return;
+      const o = document.createElement("option");
+      o.value = String(idx);
+      o.textContent = `${sym} (atom ${idx+1})`;
+      sel.appendChild(o);
+    });
+  }
+
+  function loadMolecule(){
+    state.mol = MOLECULES[Math.floor(Math.random() * MOLECULES.length)];
+    state.centralIdx = null;
+    state.locked = false;
+
+    state.bankTotal = totalValence(state.mol);
+    state.bankLeft = state.bankTotal;
+    state.placements = {};
+
+    $("molTitle").textContent = `Molecule: ${state.mol.name}`;
+    $("molPrompt").textContent = `Choose the central atom, then drag bonds and lone pairs into the slots.`;
+
+    $("builder").setAttribute("aria-disabled","true");
+    setFeedback($("centralFeedback"), `Electron bank is <strong>${state.bankTotal}</strong>. Now choose the central atom.`, null);
+    setFeedback($("checkFeedback"), "Lock a central atom first.", null);
+
+    centralOptions();
+    recalcBank();
+    renderModel();
+  }
+
+  function lockCentral(){
+    const val = $("centralSelect").value;
+    if (!val){
+      setFeedback($("centralFeedback"), "Select a central atom first.", "bad");
+      return;
+    }
+    const idx = Number(val);
+
+    if (state.mol.centralCandidates && !state.mol.centralCandidates.includes(idx)){
+      setFeedback($("centralFeedback"), "Not quite. Try choosing the best central atom for this molecule.", "bad");
+      return;
+    }
+
+    state.centralIdx = idx;
+    state.locked = true;
+
+    $("builder").setAttribute("aria-disabled","false");
+    setFeedback($("centralFeedback"), `✅ Central atom locked: <strong>${state.mol.atoms[idx]} (atom ${idx+1})</strong>. Now build the model.`, "good");
+    setFeedback($("checkFeedback"), "Drag items into slots. Click <strong>Check molecule</strong> when ready.", null);
+
+    clearPlacements();
+  }
+
+  function setupDragToolbox(){
+    document.querySelectorAll(".tool").forEach(tool => {
+      tool.addEventListener("dragstart", (e) => {
+        e.dataTransfer.setData("text/plain", tool.dataset.item);
+      });
+    });
+  }
+
+  function slotKey(atomIndex, dir){
+    return `${atomIndex}-${dir}`;
+  }
+
+  function setSlot(atomIndex, dir, item){
+    state.placements[slotKey(atomIndex, dir)] = item;
+    recalcBank();
+    renderModel();
+  }
+
+  function removeSlot(atomIndex, dir){
+    const key = slotKey(atomIndex, dir);
+    if (state.placements[key]){
+      delete state.placements[key];
+      recalcBank();
+      renderModel();
+    }
+  }
+
+  function renderItemIcon(item){
+    if (item === "lp") return `<span style="color:#8C1D40;font-weight:1000;">••</span>`;
+    if (item === "bond1") return `—`;
+    if (item === "bond2") return `=`;
+    if (item === "bond3") return `≡`;
+    return "";
+  }
+
+  function renderModel(){
+    const area = $("modelArea");
+    area.innerHTML = "";
+
+    if (!state.locked){
+      const msg = document.createElement("div");
+      msg.className = "muted";
+      msg.style.padding = "10px";
+      msg.textContent = "Lock a central atom to begin building the model.";
+      area.appendChild(msg);
+      return;
+    }
+
+    const allIdx = state.mol.atoms.map((_, i) => i);
+    const terminals = allIdx.filter(i => i !== state.centralIdx);
+    const leftIdx = terminals[0];
+    const rightIdx = terminals[1];
+
+    createAtom(area, state.centralIdx, state.mol.atoms[state.centralIdx], { x: 50, y: 50 }, true);
+    createAtom(area, leftIdx, state.mol.atoms[leftIdx], { x: 15, y: 50 }, false);
+    createAtom(area, rightIdx, state.mol.atoms[rightIdx], { x: 85, y: 50 }, false);
+  }
+
+  function createAtom(parent, atomIndex, symbol, posPct, isCenter){
+    const wrap = document.createElement("div");
+    wrap.className = "atomWrap";
+    wrap.style.left = `${posPct.x}%`;
+    wrap.style.top = `${posPct.y}%`;
+    wrap.style.transform = "translate(-50%, -50%)";
+    parent.appendChild(wrap);
+
+    const core = document.createElement("div");
+    core.className = "atomCore";
+    core.textContent = symbol;
+    if (isCenter){
+      core.style.borderColor = "rgba(140,29,64,.45)";
+      core.style.boxShadow = "0 0 0 3px rgba(140,29,64,.08)";
+    }
+    wrap.appendChild(core);
+
+    SLOT_DIRS.forEach(dir => {
+      const slot = document.createElement("div");
+      slot.className = `slot slot${dir}`;
+      const key = slotKey(atomIndex, dir);
+      const item = state.placements[key];
+
+      if (item){
+        slot.classList.add("filled");
+        slot.innerHTML = renderItemIcon(item);
+      } else {
+        slot.innerHTML = `<span class="muted">drop</span>`;
+      }
+
+      slot.addEventListener("dragover", (e) => e.preventDefault());
+      slot.addEventListener("drop", (e) => {
+        e.preventDefault();
+        const itemDropped = e.dataTransfer.getData("text/plain");
+        if (!itemDropped) return;
+        setSlot(atomIndex, dir, itemDropped);
+      });
+      slot.addEventListener("click", () => removeSlot(atomIndex, dir));
+      wrap.appendChild(slot);
+    });
+  }
+
+  function countLonePairsOnAtom(atomIndex){
+    let c = 0;
+    for (const dir of SLOT_DIRS){
+      if (state.placements[slotKey(atomIndex, dir)] === "lp") c++;
+    }
+    return c;
+  }
+
+  function bondOrderBetweenCentralAnd(atomIndex){
+    const central = state.centralIdx;
+    const terminals = state.mol.atoms.map((_,i)=>i).filter(i=>i!==central);
+    const leftIdx = terminals[0];
+    const rightIdx = terminals[1];
+
+    const toOrder = (item) => item==="bond1"?1 : item==="bond2"?2 : item==="bond3"?3 : 0;
+
+    if (atomIndex === leftIdx){
+      const a = toOrder(state.placements[slotKey(central, "Left")]);
+      const b = toOrder(state.placements[slotKey(leftIdx, "Right")]);
+      if (a===0 && b===0) return {order:0,mismatch:false};
+      return {order:a,mismatch:(a!==b || a===0)};
+    }
+    if (atomIndex === rightIdx){
+      const a = toOrder(state.placements[slotKey(central, "Right")]);
+      const b = toOrder(state.placements[slotKey(rightIdx, "Left")]);
+      if (a===0 && b===0) return {order:0,mismatch:false};
+      return {order:a,mismatch:(a!==b || a===0)};
+    }
+    return {order:0,mismatch:false};
+  }
+
+  function checkMolecule(){
+    if (!state.locked){
+      setFeedback($("checkFeedback"), "Lock a central atom first.", "bad");
+      return;
+    }
+    if (state.bankLeft < 0){
+      setFeedback($("checkFeedback"), "❌ Your electron bank is negative. Remove some placements.", "bad");
+      return;
+    }
+
+    const central = state.centralIdx;
+    const terminals = state.mol.atoms.map((_,i)=>i).filter(i=>i!==central);
+    const leftIdx = terminals[0];
+    const rightIdx = terminals[1];
+
+    const leftBond = bondOrderBetweenCentralAnd(leftIdx);
+    const rightBond = bondOrderBetweenCentralAnd(rightIdx);
+
+    if (leftBond.mismatch || rightBond.mismatch){
+      setFeedback($("checkFeedback"),
+        "❌ Bonds must match in the two facing slots (center↔terminal). Example: center-left slot AND left atom-right slot should both be the same bond type.",
+        "bad"
+      );
+      return;
+    }
+
+    const req = state.mol.answer.bonds;
+    const neededLP = state.mol.answer.lonePairs.atomCounts;
+
+    const errors = [];
+    if (leftBond.order !== req.left) errors.push(`Left bond should be <strong>order ${req.left}</strong>.`);
+    if (rightBond.order !== req.right) errors.push(`Right bond should be <strong>order ${req.right}</strong>.`);
+
+    const lpCentral = countLonePairsOnAtom(central);
+    const lpLeft = countLonePairsOnAtom(leftIdx);
+    const lpRight = countLonePairsOnAtom(rightIdx);
+
+    if (lpCentral !== neededLP[central]) errors.push(`Central atom needs <strong>${neededLP[central]}</strong> lone pairs (you have ${lpCentral}).`);
+    if (lpLeft !== neededLP[leftIdx]) errors.push(`Left atom needs <strong>${neededLP[leftIdx]}</strong> lone pairs (you have ${lpLeft}).`);
+    if (lpRight !== neededLP[rightIdx]) errors.push(`Right atom needs <strong>${neededLP[rightIdx]}</strong> lone pairs (you have ${lpRight}).`);
+
+    if (state.bankLeft !== 0) errors.push(`You should use the full electron bank (remaining: <strong>${state.bankLeft}</strong>).`);
+
+    if (errors.length){
+      setFeedback($("checkFeedback"), `❌ Not yet.<ul>${errors.map(e=>`<li>${e}</li>`).join("")}</ul>`, "bad");
+      return;
+    }
+
+    setFeedback($("checkFeedback"), "✅ Correct! Bonds, lone pairs, and electron bank all check out.", "good");
+  }
+
+  function showAnswer(){
+    if (!state.locked){
+      setFeedback($("checkFeedback"), "Lock a central atom first.", "bad");
+      return;
+    }
+    clearPlacements();
+
+    const central = state.centralIdx;
+    const terminals = state.mol.atoms.map((_,i)=>i).filter(i=>i!==central);
+    const leftIdx = terminals[0];
+    const rightIdx = terminals[1];
+
+    const reqB = state.mol.answer.bonds;
+    const toItem = (o)=> o===1?"bond1": o===2?"bond2":"bond3";
+
+    state.placements[slotKey(central, "Left")] = toItem(reqB.left);
+    state.placements[slotKey(leftIdx, "Right")] = toItem(reqB.left);
+
+    state.placements[slotKey(central, "Right")] = toItem(reqB.right);
+    state.placements[slotKey(rightIdx, "Left")] = toItem(reqB.right);
+
+    const lpCounts = state.mol.answer.lonePairs.atomCounts;
+
+    function fillLP(atomIndex, avoidDir){
+      let need = lpCounts[atomIndex] || 0;
+      for (const dir of SLOT_DIRS){
+        if (need <= 0) break;
+        if (dir === avoidDir) continue;
+        state.placements[slotKey(atomIndex, dir)] = "lp";
+        need--;
+      }
+    }
+
+    fillLP(central, null);
+    fillLP(leftIdx, "Right");
+    fillLP(rightIdx, "Left");
+
+    recalcBank();
+    renderModel();
+    setFeedback($("checkFeedback"), "Here’s one correct model. Study where bonds and lone pairs went.", null);
+  }
+
+  function init(){
+    setupDragToolbox();
+    $("newBtn").addEventListener("click", loadMolecule);
+    $("lockCentral").addEventListener("click", lockCentral);
+    $("resetBuild").addEventListener("click", () => {
+      state.centralIdx = null;
+      state.locked = false;
+      $("builder").setAttribute("aria-disabled","true");
+      setFeedback($("centralFeedback"), "Choose the central atom again, then lock it.", null);
+      setFeedback($("checkFeedback"), "Lock a central atom first.", null);
+      clearPlacements();
+      renderModel();
+    });
+    $("clearBtn").addEventListener("click", () => {
+      clearPlacements();
+      setFeedback($("checkFeedback"), "Cleared placements. Rebuild the model.", null);
+    });
+    $("checkBtn").addEventListener("click", checkMolecule);
+    $("showAnswerBtn").addEventListener("click", showAnswer);
+
+    loadMolecule();
+  }
+
+  init();
+</script>
+</body>
+</html>
