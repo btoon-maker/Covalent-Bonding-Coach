@@ -14,6 +14,8 @@
       --border:#e6e6e6;
       --bg:#fafafa;
       --card:#fff;
+      --ok:#3a7d1f;
+      --bad:#b01d3f;
     }
     *{ box-sizing:border-box; }
     html,body{ margin:0; padding:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; color:var(--black); background:var(--bg); }
@@ -58,9 +60,8 @@
     @media (max-width: 900px){ .grid2{ grid-template-columns:1fr; } }
 
     label{ display:block; font-size:13px; color:#444; margin:8px 0 6px; }
-    select, button{
-      font-family:inherit;
-    }
+    select, button, input{ font-family:inherit; }
+
     .input{
       width:100%;
       border:1px solid var(--border);
@@ -106,6 +107,9 @@
     .bankLabel{ font-weight:900; }
     .bankNum{ font-weight:900; color:var(--maroon); }
 
+    .hidden { display:none !important; }
+
+    #centralStep[aria-disabled="true"],
     #builder[aria-disabled="true"]{
       opacity:.55;
       pointer-events:none;
@@ -170,12 +174,23 @@
       min-height:360px;
       position:relative;
       overflow:hidden;
+      background:#fff;
+    }
+
+    /* SVG bond layer */
+    .bondSvg{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      pointer-events:none;
     }
 
     .atomWrap{
       position:absolute;
       width:170px;
       height:170px;
+      transform:translate(-50%, -50%);
     }
 
     .atomCore{
@@ -197,12 +212,13 @@
       height:34px;
       border-radius:12px;
       border:1px dashed rgba(140,29,64,.35);
-      background: rgba(255,255,255,.85);
+      background: rgba(255,255,255,.92);
       display:flex;
       align-items:center;
       justify-content:center;
       font-weight:900;
       color:#333;
+      cursor:pointer;
     }
     .slot.filled{
       border-style:solid;
@@ -213,6 +229,16 @@
     .slotBottom{ bottom:10px; left:58px; }
     .slotLeft{ left:6px; top:68px; }
     .slotRight{ right:6px; top:68px; }
+
+    .pill{
+      display:inline-block;
+      padding:4px 10px;
+      border-radius:999px;
+      border:1px solid rgba(0,0,0,.12);
+      background:#fff;
+      font-weight:900;
+      font-size:12px;
+    }
   </style>
 </head>
 
@@ -223,7 +249,7 @@
       <div class="mark" aria-hidden="true"></div>
       <div>
         <h1>Covalent Bonding Coach</h1>
-        <p class="subtitle">Drag bonds + lone pairs into the model. Watch the electron bank change.</p>
+        <p class="subtitle">Count electrons first, then build bonds + lone pairs and check your Lewis structure.</p>
       </div>
     </div>
   </div>
@@ -239,9 +265,46 @@
       <button class="btn" id="newBtn">New molecule</button>
     </div>
 
-    <div class="step" id="centralStep">
+    <!-- STEP 0 -->
+    <div class="step" id="countStep">
+      <h3>Step 0: Count the total valence electrons</h3>
+      <p class="muted">Before you build, calculate the total valence electrons for the whole molecule.</p>
+
+      <div class="grid2">
+        <div>
+          <label for="countInput">Total valence electrons (number)</label>
+          <input id="countInput" class="input" inputmode="numeric" placeholder="Example: 16" />
+          <div class="actions">
+            <button class="btn primary" id="checkCountBtn">Check my count</button>
+            <button class="btn" id="recountBtn">Start over</button>
+          </div>
+          <div class="muted" style="margin-top:6px;">
+            Tip: Add valence electrons from each atom (e.g., O=6, N=5, C=4, H=1).
+          </div>
+        </div>
+
+        <div class="bankBox">
+          <div class="bankLine">
+            <span class="bankLabel">Electron bank:</span>
+            <span class="bankNum" id="bankTotal">—</span>
+          </div>
+          <div class="bankLine">
+            <span class="bankLabel">Remaining:</span>
+            <span class="bankNum" id="bankLeft">—</span>
+          </div>
+          <div class="muted" style="margin-top:6px;">
+            Hidden until your count is correct.
+          </div>
+        </div>
+      </div>
+
+      <div id="countFeedback" class="feedback" aria-live="polite"></div>
+    </div>
+
+    <!-- STEP 1 -->
+    <div class="step" id="centralStep" aria-disabled="true">
       <h3>Step 1: Choose the central atom</h3>
-      <p class="muted">Pick the best central atom (hydrogen is never central). Then build the model.</p>
+      <p class="muted">Pick the best central atom (hydrogen is never central). Then lock it.</p>
 
       <div class="grid2">
         <div>
@@ -256,11 +319,11 @@
         <div class="bankBox">
           <div class="bankLine">
             <span class="bankLabel">Electron bank:</span>
-            <span class="bankNum" id="bankTotal">—</span>
+            <span class="bankNum" id="bankTotal2">—</span>
           </div>
           <div class="bankLine">
             <span class="bankLabel">Remaining:</span>
-            <span class="bankNum" id="bankLeft">—</span>
+            <span class="bankNum" id="bankLeft2">—</span>
           </div>
           <div class="muted" style="margin-top:6px;">
             Bonds spend electrons (single=2, double=4, triple=6). Lone pairs spend 2.
@@ -271,6 +334,7 @@
       <div id="centralFeedback" class="feedback" aria-live="polite"></div>
     </div>
 
+    <!-- STEP 2 -->
     <div class="step" id="builder" aria-disabled="true">
       <div class="row-between">
         <h3>Step 2: Build the model</h3>
@@ -282,7 +346,7 @@
       </div>
 
       <div class="muted" style="margin-bottom:10px;">
-        Drag items from the toolbox into the slots around atoms. Click a filled slot to remove it.
+        Drag items into slots. Click a filled slot to remove it. Bonds “connect” only when both facing slots match.
       </div>
 
       <div class="builderGrid2">
@@ -326,7 +390,12 @@
               </div>
             </div>
 
-            <div class="toolHint">Tip: Bonds must match on both sides of a connection (facing slots).</div>
+            <div class="toolHint">
+              <strong>Connection rule:</strong> to connect center↔terminal, place the same bond type in both facing slots.
+              <div class="muted" style="margin-top:6px;">
+                Example: center-right slot “=” and right atom-left slot “=” creates a double bond line.
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -343,6 +412,7 @@
     {
       name: "CO2",
       atoms: ["C","O","O"],
+      // central is definitely carbon
       centralCandidates: [0],
       answer: {
         bonds: { left: 2, right: 2 },
@@ -360,6 +430,8 @@
     placements: {},
     bankTotal: 0,
     bankLeft: 0,
+    bankUnlocked: false,
+    layout: { center:null, left:null, right:null }, // pixel centers of atoms
   };
 
   function $(id){ return document.getElementById(id); }
@@ -381,11 +453,30 @@
     return 0;
   }
 
-  function recalcBank(){
-    const spent = Object.values(state.placements).reduce((s, item) => s + costOfItem(item), 0);
-    state.bankLeft = state.bankTotal - spent;
+  function updateBankUI(){
+    // Step 0 bank box (hidden until unlocked)
+    if (!state.bankUnlocked){
+      $("bankTotal").textContent = "—";
+      $("bankLeft").textContent = "—";
+      $("bankTotal2").textContent = "—";
+      $("bankLeft2").textContent = "—";
+      return;
+    }
     $("bankTotal").textContent = String(state.bankTotal);
     $("bankLeft").textContent = String(state.bankLeft);
+    $("bankTotal2").textContent = String(state.bankTotal);
+    $("bankLeft2").textContent = String(state.bankLeft);
+  }
+
+  function recalcBank(){
+    if (!state.bankUnlocked){
+      state.bankLeft = state.bankTotal; // keep internal consistent, but don't show
+      updateBankUI();
+      return;
+    }
+    const spent = Object.values(state.placements).reduce((s, item) => s + costOfItem(item), 0);
+    state.bankLeft = state.bankTotal - spent;
+    updateBankUI();
   }
 
   function clearPlacements(){
@@ -418,21 +509,79 @@
 
     state.bankTotal = totalValence(state.mol);
     state.bankLeft = state.bankTotal;
+    state.bankUnlocked = false;
     state.placements = {};
 
     $("molTitle").textContent = `Molecule: ${state.mol.name}`;
-    $("molPrompt").textContent = `Choose the central atom, then drag bonds and lone pairs into the slots.`;
+    $("molPrompt").textContent = `Count electrons first, then choose the central atom and build the model.`;
 
+    // lock steps
+    $("centralStep").setAttribute("aria-disabled","true");
     $("builder").setAttribute("aria-disabled","true");
-    setFeedback($("centralFeedback"), `Electron bank is <strong>${state.bankTotal}</strong>. Now choose the central atom.`, null);
-    setFeedback($("checkFeedback"), "Lock a central atom first.", null);
+
+    $("countInput").value = "";
+    setFeedback($("countFeedback"), "Enter the total valence electrons, then click <strong>Check my count</strong>.", null);
+    setFeedback($("centralFeedback"), "Complete Step 0 first.", null);
+    setFeedback($("checkFeedback"), "Complete Step 0 and lock a central atom first.", null);
 
     centralOptions();
-    recalcBank();
+    updateBankUI();
     renderModel();
   }
 
+  function checkCount(){
+    const raw = $("countInput").value.trim();
+    const n = Number(raw);
+
+    if (!raw || !Number.isFinite(n) || n < 0){
+      setFeedback($("countFeedback"), "Enter a valid number.", "bad");
+      return;
+    }
+
+    const correct = state.bankTotal;
+
+    if (n !== correct){
+      setFeedback(
+        $("countFeedback"),
+        `Not yet. Try again. (Hint: add the valence electrons from each atom in ${state.mol.name}.)`,
+        "bad"
+      );
+      return;
+    }
+
+    state.bankUnlocked = true;
+    recalcBank();
+
+    $("centralStep").setAttribute("aria-disabled","false");
+    setFeedback(
+      $("countFeedback"),
+      `✅ Correct. Total valence electrons = <strong>${correct}</strong>. Electron bank is now unlocked.`,
+      "good"
+    );
+
+    setFeedback($("centralFeedback"), "Now choose and lock the central atom.", null);
+  }
+
+  function recount(){
+    state.bankUnlocked = false;
+    $("countInput").value = "";
+    updateBankUI();
+    $("centralStep").setAttribute("aria-disabled","true");
+    $("builder").setAttribute("aria-disabled","true");
+    state.centralIdx = null;
+    state.locked = false;
+    clearPlacements();
+    setFeedback($("countFeedback"), "Enter the total valence electrons again.", null);
+    setFeedback($("centralFeedback"), "Complete Step 0 first.", null);
+    setFeedback($("checkFeedback"), "Complete Step 0 and lock a central atom first.", null);
+  }
+
   function lockCentral(){
+    if (!state.bankUnlocked){
+      setFeedback($("centralFeedback"), "Complete Step 0 first (count total valence electrons).", "bad");
+      return;
+    }
+
     const val = $("centralSelect").value;
     if (!val){
       setFeedback($("centralFeedback"), "Select a central atom first.", "bad");
@@ -468,6 +617,10 @@
   }
 
   function setSlot(atomIndex, dir, item){
+    if (!state.bankUnlocked){
+      setFeedback($("checkFeedback"), "Complete Step 0 first (unlock the electron bank).", "bad");
+      return;
+    }
     state.placements[slotKey(atomIndex, dir)] = item;
     recalcBank();
     renderModel();
@@ -490,15 +643,60 @@
     return "";
   }
 
+  function toOrder(item){
+    if (item==="bond1") return 1;
+    if (item==="bond2") return 2;
+    if (item==="bond3") return 3;
+    return 0;
+  }
+
+  function bondOrderBetweenCentralAnd(atomIndex){
+    const central = state.centralIdx;
+    const terminals = state.mol.atoms.map((_,i)=>i).filter(i=>i!==central);
+    const leftIdx = terminals[0];
+    const rightIdx = terminals[1];
+
+    if (atomIndex === leftIdx){
+      const a = toOrder(state.placements[slotKey(central, "Left")]);
+      const b = toOrder(state.placements[slotKey(leftIdx, "Right")]);
+      if (a===0 && b===0) return {order:0,mismatch:false};
+      return {order:a,mismatch:(a!==b || a===0)};
+    }
+    if (atomIndex === rightIdx){
+      const a = toOrder(state.placements[slotKey(central, "Right")]);
+      const b = toOrder(state.placements[slotKey(rightIdx, "Left")]);
+      if (a===0 && b===0) return {order:0,mismatch:false};
+      return {order:a,mismatch:(a!==b || a===0)};
+    }
+    return {order:0,mismatch:false};
+  }
+
+  function countLonePairsOnAtom(atomIndex){
+    let c = 0;
+    for (const dir of SLOT_DIRS){
+      if (state.placements[slotKey(atomIndex, dir)] === "lp") c++;
+    }
+    return c;
+  }
+
   function renderModel(){
     const area = $("modelArea");
     area.innerHTML = "";
+
+    // bond svg layer (always present once building is enabled)
+    const svg = document.createElementNS("http://www.w3.org/2000/svg","svg");
+    svg.setAttribute("class","bondSvg");
+    svg.setAttribute("viewBox","0 0 1000 600");
+    svg.setAttribute("preserveAspectRatio","none");
+    area.appendChild(svg);
 
     if (!state.locked){
       const msg = document.createElement("div");
       msg.className = "muted";
       msg.style.padding = "10px";
-      msg.textContent = "Lock a central atom to begin building the model.";
+      msg.textContent = state.bankUnlocked
+        ? "Lock a central atom to begin building the model."
+        : "Complete Step 0 first, then choose and lock the central atom.";
       area.appendChild(msg);
       return;
     }
@@ -508,9 +706,74 @@
     const leftIdx = terminals[0];
     const rightIdx = terminals[1];
 
+    // positions in percent for divs, but also record pixel-ish points for SVG (1000x600)
+    const centerP = { x: 500, y: 300 };
+    const leftP   = { x: 250, y: 300 };
+    const rightP  = { x: 750, y: 300 };
+
+    state.layout.center = centerP;
+    state.layout.left = leftP;
+    state.layout.right = rightP;
+
+    // draw connected bonds (only if BOTH facing slots match)
+    drawBondIfConnected(svg, leftIdx, "left");
+    drawBondIfConnected(svg, rightIdx, "right");
+
+    // atoms (HTML) positioned relative to container (percent based)
     createAtom(area, state.centralIdx, state.mol.atoms[state.centralIdx], { x: 50, y: 50 }, true);
-    createAtom(area, leftIdx, state.mol.atoms[leftIdx], { x: 15, y: 50 }, false);
-    createAtom(area, rightIdx, state.mol.atoms[rightIdx], { x: 85, y: 50 }, false);
+    createAtom(area, leftIdx, state.mol.atoms[leftIdx], { x: 25, y: 50 }, false);
+    createAtom(area, rightIdx, state.mol.atoms[rightIdx], { x: 75, y: 50 }, false);
+  }
+
+  function drawBondIfConnected(svg, terminalIdx, side){
+    const ord = bondOrderBetweenCentralAnd(terminalIdx);
+    if (ord.mismatch || ord.order === 0) return;
+
+    const c = state.layout.center;
+    const t = (side === "left") ? state.layout.left : state.layout.right;
+
+    // draw 1/2/3 parallel lines
+    const dx = t.x - c.x;
+    const dy = t.y - c.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const nx = -dy / len; // normal unit vector
+    const ny =  dx / len;
+
+    // start/end a bit away from cores so it feels like it touches atoms
+    const pad = 55;
+    const sx = c.x + (dx/len)*pad;
+    const sy = c.y + (dy/len)*pad;
+    const ex = t.x - (dx/len)*pad;
+    const ey = t.y - (dy/len)*pad;
+
+    const spacing = 10; // separation between lines
+    const lines = ord.order;
+
+    for (let i=0; i<lines; i++){
+      let offset = 0;
+      if (lines === 2){
+        offset = (i===0 ? -spacing/2 : spacing/2);
+      } else if (lines === 3){
+        offset = (i===0 ? -spacing : i===1 ? 0 : spacing);
+      } else {
+        offset = 0;
+      }
+
+      const x1 = sx + nx*offset;
+      const y1 = sy + ny*offset;
+      const x2 = ex + nx*offset;
+      const y2 = ey + ny*offset;
+
+      const line = document.createElementNS("http://www.w3.org/2000/svg","line");
+      line.setAttribute("x1", x1);
+      line.setAttribute("y1", y1);
+      line.setAttribute("x2", x2);
+      line.setAttribute("y2", y2);
+      line.setAttribute("stroke", "#8C1D40");
+      line.setAttribute("stroke-width", "6");
+      line.setAttribute("stroke-linecap", "round");
+      svg.appendChild(line);
+    }
   }
 
   function createAtom(parent, atomIndex, symbol, posPct, isCenter){
@@ -518,7 +781,6 @@
     wrap.className = "atomWrap";
     wrap.style.left = `${posPct.x}%`;
     wrap.style.top = `${posPct.y}%`;
-    wrap.style.transform = "translate(-50%, -50%)";
     parent.appendChild(wrap);
 
     const core = document.createElement("div");
@@ -555,38 +817,11 @@
     });
   }
 
-  function countLonePairsOnAtom(atomIndex){
-    let c = 0;
-    for (const dir of SLOT_DIRS){
-      if (state.placements[slotKey(atomIndex, dir)] === "lp") c++;
-    }
-    return c;
-  }
-
-  function bondOrderBetweenCentralAnd(atomIndex){
-    const central = state.centralIdx;
-    const terminals = state.mol.atoms.map((_,i)=>i).filter(i=>i!==central);
-    const leftIdx = terminals[0];
-    const rightIdx = terminals[1];
-
-    const toOrder = (item) => item==="bond1"?1 : item==="bond2"?2 : item==="bond3"?3 : 0;
-
-    if (atomIndex === leftIdx){
-      const a = toOrder(state.placements[slotKey(central, "Left")]);
-      const b = toOrder(state.placements[slotKey(leftIdx, "Right")]);
-      if (a===0 && b===0) return {order:0,mismatch:false};
-      return {order:a,mismatch:(a!==b || a===0)};
-    }
-    if (atomIndex === rightIdx){
-      const a = toOrder(state.placements[slotKey(central, "Right")]);
-      const b = toOrder(state.placements[slotKey(rightIdx, "Left")]);
-      if (a===0 && b===0) return {order:0,mismatch:false};
-      return {order:a,mismatch:(a!==b || a===0)};
-    }
-    return {order:0,mismatch:false};
-  }
-
   function checkMolecule(){
+    if (!state.bankUnlocked){
+      setFeedback($("checkFeedback"), "Complete Step 0 first (unlock the electron bank).", "bad");
+      return;
+    }
     if (!state.locked){
       setFeedback($("checkFeedback"), "Lock a central atom first.", "bad");
       return;
@@ -606,7 +841,7 @@
 
     if (leftBond.mismatch || rightBond.mismatch){
       setFeedback($("checkFeedback"),
-        "❌ Bonds must match in the two facing slots (center↔terminal). Example: center-left slot AND left atom-right slot should both be the same bond type.",
+        "❌ Bonds must match in the two facing slots (center↔terminal).",
         "bad"
       );
       return;
@@ -638,10 +873,15 @@
   }
 
   function showAnswer(){
+    if (!state.bankUnlocked){
+      setFeedback($("checkFeedback"), "Complete Step 0 first (unlock the electron bank).", "bad");
+      return;
+    }
     if (!state.locked){
       setFeedback($("checkFeedback"), "Lock a central atom first.", "bad");
       return;
     }
+
     clearPlacements();
 
     const central = state.centralIdx;
@@ -681,8 +921,13 @@
 
   function init(){
     setupDragToolbox();
+
     $("newBtn").addEventListener("click", loadMolecule);
+    $("checkCountBtn").addEventListener("click", checkCount);
+    $("recountBtn").addEventListener("click", recount);
+
     $("lockCentral").addEventListener("click", lockCentral);
+
     $("resetBuild").addEventListener("click", () => {
       state.centralIdx = null;
       state.locked = false;
@@ -692,10 +937,12 @@
       clearPlacements();
       renderModel();
     });
+
     $("clearBtn").addEventListener("click", () => {
       clearPlacements();
       setFeedback($("checkFeedback"), "Cleared placements. Rebuild the model.", null);
     });
+
     $("checkBtn").addEventListener("click", checkMolecule);
     $("showAnswerBtn").addEventListener("click", showAnswer);
 
