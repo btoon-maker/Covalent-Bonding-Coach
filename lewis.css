@@ -14,16 +14,33 @@
   --shadow:0 10px 30px rgba(0,0,0,.08);
 }
 
+/* =========================
+   HARD RESET (prevents "pushed right" layouts)
+   ========================= */
 *{box-sizing:border-box}
 html,body{height:100%}
 body{
-  margin:0;
+  margin:0 !important;
+  padding:0 !important;
+  width:100%;
+  max-width:100%;
+  overflow-x:hidden;              /* prevents sideways drift */
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
   color:var(--ink);
   background:var(--bg);
 }
 
-/* Make the header full width */
+/* If you have a root wrapper (common), make sure it can't offset */
+#root, #app, main{
+  width:100% !important;
+  max-width:100% !important;
+  margin:0 !important;
+  padding:0 !important;
+}
+
+/* =========================
+   HEADER
+   ========================= */
 .topbar{
   width:100%;
   background:linear-gradient(90deg,var(--maroon),#6d1430);
@@ -35,24 +52,62 @@ body{
   gap:16px;
 }
 
-.brand{display:flex;align-items:center;gap:14px;color:white}
+.brand{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  color:white;
+}
+
 .brand-mark{
-  width:40px;height:40px;border-radius:10px;
+  width:40px;
+  height:40px;
+  border-radius:10px;
   background:var(--gold);
 }
-.brand-text h1{margin:0;font-size:20px;line-height:1.2}
-.brand-text p{margin:2px 0 0;color:rgba(255,255,255,.85);font-size:13px}
 
-/* ✅ This is the main fix: use most of the screen width */
+.brand-text h1{
+  margin:0;
+  font-size:20px;
+  line-height:1.2;
+}
+
+.brand-text p{
+  margin:2px 0 0;
+  color:rgba(255,255,255,.85);
+  font-size:13px;
+}
+
+/* This is the RIGHT SIDE of the header (where New Molecule should live if it stays in header) */
+.topbar-actions{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+
+/* =========================
+   MAIN WRAP (THIS FIXES THE GIANT LEFT SPACE)
+   ========================= */
 .wrap{
-  width:min(1400px, 96vw);
-  margin:18px auto 40px;
-  padding:0 12px;
+  /* Always center and never "drift" right */
+  width:min(1400px, calc(100vw - 32px));
+  margin:18px auto 40px !important;
+  padding:0 12px !important;
   display:flex;
   flex-direction:column;
   gap:16px;
+
+  /* kill any leftover offsets from earlier versions */
+  position:relative;
+  left:auto !important;
+  right:auto !important;
+  transform:none !important;
 }
 
+/* =========================
+   CARDS / TYPOGRAPHY
+   ========================= */
 .card{
   width:100%;
   background:var(--card);
@@ -96,7 +151,10 @@ h2{margin:0 0 8px;font-size:18px}
   min-width:220px;
   outline:none;
 }
-.input:focus,.select:focus{border-color:#c9b3bb;box-shadow:0 0 0 3px rgba(140,29,64,.12)}
+.input:focus,.select:focus{
+  border-color:#c9b3bb;
+  box-shadow:0 0 0 3px rgba(140,29,64,.12)
+}
 
 .btn{
   border:1px solid transparent;
@@ -105,16 +163,10 @@ h2{margin:0 0 8px;font-size:18px}
   font-weight:800;
   cursor:pointer;
   font-size:13px;
+  white-space:nowrap;
 }
-.btn-primary{
-  background:var(--maroon);
-  color:white;
-}
-.btn-secondary{
-  background:white;
-  border-color:var(--line);
-  color:var(--ink);
-}
+.btn-primary{background:var(--maroon);color:white}
+.btn-secondary{background:white;border-color:var(--line);color:var(--ink)}
 .btn:disabled{opacity:.45;cursor:not-allowed}
 
 .divider{height:1px;background:var(--line);margin:14px 0}
@@ -131,7 +183,9 @@ h2{margin:0 0 8px;font-size:18px}
 .msg-good{background:var(--ok);border-color:#b7de88}
 .msg-bad{background:var(--bad);border-color:#f3b0b0}
 
-/* ✅ Wider grids before collapsing */
+/* =========================
+   STEP 1 LAYOUT
+   ========================= */
 .step1-grid{
   display:grid;
   grid-template-columns: 1.1fr .9fr;
@@ -174,7 +228,9 @@ h2{margin:0 0 8px;font-size:18px}
 }
 .actions{display:flex;gap:10px;flex-wrap:wrap}
 
-/* ✅ Step 2 should be side-by-side on most desktops */
+/* =========================
+   STEP 2 LAYOUT
+   ========================= */
 .build-grid{
   display:grid;
   grid-template-columns: 1.3fr .7fr;
@@ -185,10 +241,7 @@ h2{margin:0 0 8px;font-size:18px}
   .build-grid{grid-template-columns:1fr}
 }
 
-.panel-title{
-  font-weight:900;
-  margin-bottom:10px;
-}
+.panel-title{font-weight:900;margin-bottom:10px}
 
 .stage{
   position:relative;
