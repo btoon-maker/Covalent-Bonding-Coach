@@ -150,7 +150,6 @@ function getGeometry(mol){
     const dy = (p2.y-p1.y);
     const dist = Math.hypot(dx,dy);
 
-    // Width of pill drop zone: distance between atom edges (approx)
     const w = Math.max(90, dist - 80);
     const ang = Math.atan2(dy, dx) * 180 / Math.PI;
 
@@ -166,25 +165,19 @@ function getGeometry(mol){
   return { atomsPos, zones };
 }
 
-// Corner lone-pair dots (small + clean)
-function lpOffsets(){
+/* ✅ Lone-pair slots as paired dots (••) — 4 positions around atom */
+function lpSlots(){
+  // These positions are “around” the atom, not corners.
+  // Each represents ONE lone pair (2e⁻).
   return [
-    {dx:-46, dy:-46}, // NW
-    {dx: 46, dy:-46}, // NE
-    {dx: 46, dy: 46}, // SE
-    {dx:-46, dy: 46}, // SW
+    {dx: 0,  dy:-54}, // top
+    {dx: 54, dy: 0},  // right
+    {dx: 0,  dy: 54}, // bottom
+    {dx:-54, dy: 0},  // left
   ];
 }
 
 /* -------- Rendering -------- */
-function renderMoleculeHeader(){
-  molTitle.innerHTML = formatSubscripts(state.mol.label);
-  molPrompt.innerHTML = state.mol.correct.noCentral
-    ? `Confirm electrons, then choose <b>No central atom</b> and lock it.`
-    : `Confirm electrons, choose a central atom, then build.`;
-}
-
-/* ✅ CENTRAL ATOM OPTIONS: ALL NON-H atoms (+ “No central atom” if diatomic) */
 function renderCentralChoices(){
   clearChildren(centralSelect);
 
@@ -193,7 +186,6 @@ function renderCentralChoices(){
   opt0.textContent = "Select…";
   centralSelect.appendChild(opt0);
 
-  // Diatomic explicit option
   if(state.mol.correct.noCentral){
     const optNone = document.createElement("option");
     optNone.value = "none";
@@ -201,7 +193,6 @@ function renderCentralChoices(){
     centralSelect.appendChild(optNone);
   }
 
-  // All non-H atoms as candidates (students decide which is best)
   state.mol.atoms.forEach((sym, i) => {
     if(sym === "H") return;
     const opt = document.createElement("option");
@@ -268,7 +259,7 @@ function renderStage(){
 
   const { atomsPos, zones } = getGeometry(state.mol);
 
-  // atoms + lone-pair dots
+  // atoms + lone-pair slots (paired dots)
   for(let i=0;i<state.mol.atoms.length;i++){
     const id = "A"+i;
     const p = atomsPos[id];
@@ -281,22 +272,25 @@ function renderStage(){
     atom.innerHTML = `<div class="sym">${state.mol.atoms[i]}</div>`;
     stageWrap.appendChild(atom);
 
-    lpOffsets().forEach((off, k) => {
+    lpSlots().forEach((off, k) => {
       const lpId = `LP_${id}_${k}`;
       const slot = document.createElement("div");
       slot.className = "drop-lp" + (state.placements.lps[lpId] ? " filled" : "");
       slot.dataset.dropType = "lp";
       slot.dataset.lpId = lpId;
       slot.dataset.atomId = id;
-      slot.style.left = (p.x + off.dx - 9) + "px";
-      slot.style.top  = (p.y + off.dy - 9) + "px";
+
+      // Center the pill slot (38x22) on its location
+      slot.style.left = (p.x + off.dx - 19) + "px";
+      slot.style.top  = (p.y + off.dy - 11) + "px";
+
       wireDropTarget(slot);
       slot.addEventListener("click", () => removeLP(lpId));
       stageWrap.appendChild(slot);
     });
   }
 
-  // bond zones (one per pair, visually between atoms)
+  // bond zones (one per pair, between atoms)
   zones.forEach(z => {
     const zone = document.createElement("div");
     zone.className = "bond-zone" + (state.placements.bonds[z.id] ? " filled" : "");
@@ -484,7 +478,6 @@ function checkMolecule(){
     return;
   }
 
-  // Lone pairs
   let lpMismatch = 0;
   for(const atomId in mol.correct.lp){
     const want = mol.correct.lp[atomId];
