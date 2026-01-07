@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Lewis Structure Builder</title>
-  <link rel="stylesheet" href="lewis.css" />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Covalent Bonding Coach</title>
+  <link rel="stylesheet" href="lewis.css"/>
 </head>
 <body>
   <header class="topbar">
@@ -12,177 +12,124 @@
       <div class="brand">
         <div class="mark" aria-hidden="true"></div>
         <div>
-          <h1>Lewis Structure Builder</h1>
-          <p class="subtitle">Count the electron bank first, choose a central atom, then build bonds + lone pairs.</p>
+          <h1>Covalent Bonding Coach</h1>
+          <p class="subtitle">Drag bonds + lone pairs into the model. Watch the electron bank change.</p>
         </div>
       </div>
-      <nav class="nav">
-        <a class="navlink" href="index.html">Mole Map Coach</a>
-        <a class="navlink" href="guided.html">Guided Practice</a>
-        <a class="navlink" href="practice.html">Independent Practice</a>
-        <a class="navlink active" href="lewis.html">Lewis Builder</a>
-      </nav>
     </div>
   </header>
 
   <main class="container">
     <section class="card">
       <div class="row-between">
-        <h2>New molecule</h2>
-        <button id="newProblem" class="btn">New molecule</button>
-      </div>
-
-      <div class="problemBox" id="problemText"></div>
-
-      <!-- STEP 0 -->
-      <div class="step">
-        <h3>Step 0: Count total valence electrons</h3>
-        <p class="muted">
-          Before you can build anything, calculate the total valence electrons for the whole molecule.
-        </p>
-
-        <div class="grid2">
-          <div>
-            <label for="studentTotal">Enter total valence electrons</label>
-            <input id="studentTotal" class="input" inputmode="numeric" placeholder="e.g., 16" />
-            <div class="actions">
-              <button id="lockInTotal" class="btn primary">Lock in my electron bank</button>
-              <button id="showValenceHint" class="btn">Show valence table</button>
-            </div>
-          </div>
-
-          <div class="hintBox" id="valenceHint" hidden>
-            <div class="hintTitle">Common valence electrons</div>
-            <div class="hintGrid">
-              <div><strong>H</strong>: 1</div>
-              <div><strong>C</strong>: 4</div>
-              <div><strong>N</strong>: 5</div>
-              <div><strong>O</strong>: 6</div>
-              <div><strong>F/Cl/Br/I</strong>: 7</div>
-              <div><strong>S</strong>: 6</div>
-              <div><strong>P</strong>: 5</div>
-            </div>
-            <div class="muted" style="margin-top:8px;">
-              (Neutral molecules only in this version.)
-            </div>
-          </div>
+        <div>
+          <h2 id="molTitle">Molecule: —</h2>
+          <div class="muted" id="molPrompt">New molecule loading…</div>
         </div>
-
-        <div id="totalFeedback" class="feedback" aria-live="polite"></div>
+        <button class="btn" id="newBtn">New molecule</button>
       </div>
 
-      <!-- STEP 1 -->
-      <div class="step" id="centralStep" aria-disabled="true">
+      <!-- Step 1: central atom selection -->
+      <div class="step" id="centralStep">
         <h3>Step 1: Choose the central atom</h3>
-        <p class="muted">
-          Choose the atom that will go in the center of your skeleton (hydrogen is never central).
-        </p>
+        <p class="muted">Pick the best central atom (hydrogen is never central). Then build the model.</p>
 
         <div class="grid2">
           <div>
             <label for="centralSelect">Central atom</label>
             <select id="centralSelect" class="input"></select>
-
             <div class="actions">
-              <button id="lockCentral" class="btn primary">Lock in central atom</button>
+              <button class="btn primary" id="lockCentral">Lock central atom</button>
+              <button class="btn" id="resetBuild">Reset build</button>
             </div>
           </div>
 
-          <div class="miniCard">
-            <div class="miniTitle">Quick reminder</div>
-            <ul class="miniList">
-              <li>Hydrogen is never central.</li>
-              <li>Often the least electronegative (not H) is central.</li>
-              <li>Carbon is commonly central when present.</li>
-            </ul>
+          <div class="bankBox">
+            <div class="bankLine">
+              <span class="bankLabel">Electron bank:</span>
+              <span class="bankNum" id="bankTotal">—</span>
+            </div>
+            <div class="bankLine">
+              <span class="bankLabel">Remaining:</span>
+              <span class="bankNum" id="bankLeft">—</span>
+            </div>
+            <div class="muted" style="margin-top:6px;">
+              Bonds spend electrons (single=2, double=4, triple=6). Lone pairs spend 2.
+            </div>
           </div>
         </div>
 
         <div id="centralFeedback" class="feedback" aria-live="polite"></div>
       </div>
 
-      <!-- BUILDER -->
+      <!-- Builder -->
       <div class="step" id="builder" aria-disabled="true">
         <div class="row-between">
-          <h3>Build your Lewis structure</h3>
-          <div class="bankPill">
-            Electron bank remaining: <span id="bankLeft" class="bankNum">—</span>
+          <h3>Step 2: Build the model</h3>
+          <div class="actions">
+            <button class="btn primary" id="checkBtn">Check molecule</button>
+            <button class="btn" id="showAnswerBtn">Show correct model</button>
+            <button class="btn" id="clearBtn">Clear placements</button>
           </div>
         </div>
 
-        <p class="muted">
-          Add bonds and lone pairs. The bank must decrease correctly as you build.
-        </p>
+        <div class="muted" style="margin-bottom:10px;">
+          Drag items from the toolbox into the slots around atoms. Some slots won’t be used for some molecules.
+        </div>
 
-        <div class="builderGrid">
-          <!-- Left: atom panel -->
+        <div class="builderGrid2">
+          <!-- Model -->
           <div class="panel">
-            <div class="panelTitle">Atoms</div>
-            <div id="atoms" class="atoms"></div>
-
-            <div class="panelTitle" style="margin-top:14px;">Bond tool</div>
-            <div class="bondTool">
-              <div class="toolRow">
-                <label for="bondOrder">Bond type</label>
-                <select id="bondOrder" class="input">
-                  <option value="1">Single (2 e⁻)</option>
-                  <option value="2">Double (4 e⁻)</option>
-                  <option value="3">Triple (6 e⁻)</option>
-                </select>
-              </div>
-              <div class="muted" style="margin-top:6px;">
-                Click one atom, then click another atom to place that bond.
-              </div>
-              <div class="actions" style="margin-top:10px;">
-                <button id="clearAll" class="btn">Clear structure</button>
-              </div>
-            </div>
+            <div class="panelTitle">Model</div>
+            <div id="modelArea" class="modelArea"></div>
           </div>
 
-          <!-- Center: structure -->
+          <!-- Toolbox -->
           <div class="panel">
-            <div class="panelTitle">Structure</div>
-            <div class="muted" style="margin: -4px 0 10px;">
-              Central atom locked: <strong id="centralLockedText">—</strong>
-            </div>
+            <div class="panelTitle">Toolbox</div>
 
-            <div id="structure" class="structure" aria-label="Structure area"></div>
-
-            <div class="lpTools">
-              <div class="lpLabel">Selected atom: <strong id="selectedAtomName">None</strong></div>
-              <div class="actions">
-                <button id="addLP" class="btn primary">+ Lone pair (2 e⁻)</button>
-                <button id="removeLP" class="btn">− Lone pair</button>
+            <div class="toolbox">
+              <div class="tool" draggable="true" data-item="bond1" aria-label="Single bond">
+                <div class="toolIcon bondIcon">—</div>
+                <div class="toolText">
+                  <div class="toolName">Single bond</div>
+                  <div class="muted">Costs 2 e⁻</div>
+                </div>
               </div>
-            </div>
-          </div>
 
-          <!-- Right: auto-prompts + checks -->
-          <div class="panel">
-            <div class="panelTitle">Coach prompts</div>
-            <div id="coachPrompts" class="coachBox" aria-live="polite"></div>
+              <div class="tool" draggable="true" data-item="bond2" aria-label="Double bond">
+                <div class="toolIcon bondIcon">=</div>
+                <div class="toolText">
+                  <div class="toolName">Double bond</div>
+                  <div class="muted">Costs 4 e⁻</div>
+                </div>
+              </div>
 
-            <div class="panelTitle" style="margin-top:14px;">Checks</div>
-            <div class="actions">
-              <button id="check" class="btn primary">Check structure</button>
-              <button id="showAnswer" class="btn">Show one correct answer</button>
-            </div>
+              <div class="tool" draggable="true" data-item="bond3" aria-label="Triple bond">
+                <div class="toolIcon bondIcon">≡</div>
+                <div class="toolText">
+                  <div class="toolName">Triple bond</div>
+                  <div class="muted">Costs 6 e⁻</div>
+                </div>
+              </div>
 
-            <div id="checkFeedback" class="feedback" aria-live="polite"></div>
+              <div class="tool" draggable="true" data-item="lp" aria-label="Lone pair">
+                <div class="toolIcon lpIcon">••</div>
+                <div class="toolText">
+                  <div class="toolName">Lone pair</div>
+                  <div class="muted">Costs 2 e⁻</div>
+                </div>
+              </div>
 
-            <div class="miniCard">
-              <div class="miniTitle">Rules we’re checking</div>
-              <ul class="miniList">
-                <li>Electron bank usage matches what you built.</li>
-                <li>Hydrogen has 2 electrons (duet).</li>
-                <li>Other atoms aim for 8 electrons (octet) for these molecules.</li>
-                <li>No negative bank.</li>
-              </ul>
+              <div class="toolHint">
+                Tip: click a filled slot to remove it.
+              </div>
             </div>
           </div>
         </div>
+
+        <div id="checkFeedback" class="feedback" aria-live="polite"></div>
       </div>
-
     </section>
   </main>
 
