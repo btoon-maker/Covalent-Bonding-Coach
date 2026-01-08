@@ -7,21 +7,27 @@
   <link rel="stylesheet" href="lewis.css" />
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <div class="brand-dot" aria-hidden="true"></div>
-      <div>
-        <div class="brand-title">Covalent Bonding Coach</div>
-        <div class="brand-sub">Count valence electrons → choose/lock central atom → build the Lewis model.</div>
-      </div>
-    </div>
+  <header class="topbar topbar-grid">
+    <div class="topbar-left"></div>
 
-    <!-- ✅ Toggle pills + existing New molecule button -->
-    <div class="topbar-right">
+    <!-- ✅ Centered title + mode pills (like Stoichiometry Coach) -->
+    <div class="topbar-center brand-center">
+      <div class="brand">
+        <div class="brand-dot" aria-hidden="true"></div>
+        <div>
+          <div class="brand-title">Covalent Bonding Coach</div>
+          <div class="brand-sub">Count valence electrons → choose/lock central atom → build the Lewis model.</div>
+        </div>
+      </div>
+
       <nav class="tabs" aria-label="Mode">
         <a class="tab tab-active" href="./index.html">Guided Build</a>
         <a class="tab" href="./practice.html">Independent Practice</a>
       </nav>
+    </div>
+
+    <!-- ✅ Action button stays visible on the far right -->
+    <div class="topbar-actions">
       <button id="btnNew" class="btn btn-light">New molecule</button>
     </div>
   </header>
@@ -130,9 +136,7 @@
 
           <div class="toolbox">
             <div class="tool" draggable="true" data-tool="bond1">
-              <div class="tool-icon">
-                <span class="bond bond1"></span>
-              </div>
+              <div class="tool-icon"><span class="bond bond1"></span></div>
               <div>
                 <div class="tool-name">Single bond</div>
                 <div class="tool-cost">Costs 2 e⁻</div>
@@ -140,9 +144,7 @@
             </div>
 
             <div class="tool" draggable="true" data-tool="bond2">
-              <div class="tool-icon">
-                <span class="bond bond2"></span>
-              </div>
+              <div class="tool-icon"><span class="bond bond2"></span></div>
               <div>
                 <div class="tool-name">Double bond</div>
                 <div class="tool-cost">Costs 4 e⁻</div>
@@ -150,9 +152,7 @@
             </div>
 
             <div class="tool" draggable="true" data-tool="bond3">
-              <div class="tool-icon">
-                <span class="bond bond3"></span>
-              </div>
+              <div class="tool-icon"><span class="bond bond3"></span></div>
               <div>
                 <div class="tool-name">Triple bond</div>
                 <div class="tool-cost">Costs 6 e⁻</div>
@@ -160,9 +160,7 @@
             </div>
 
             <div class="tool" draggable="true" data-tool="lp">
-              <div class="tool-icon">
-                <span class="lp">••</span>
-              </div>
+              <div class="tool-icon"><span class="lp">••</span></div>
               <div>
                 <div class="tool-name">Lone pair</div>
                 <div class="tool-cost">Costs 2 e⁻</div>
