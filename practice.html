@@ -1,0 +1,220 @@
+p<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Independent & Challenge Practice — Covalent Bonding Coach</title>
+  <link rel="stylesheet" href="lewis.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-dot" aria-hidden="true"></div>
+      <div>
+        <div class="brand-title">Independent & Challenge Practice</div>
+        <div class="brand-sub">Random sets • optional hints • optional reminders • optional timer</div>
+      </div>
+    </div>
+    <div class="row">
+      <a class="btn btn-light" href="./index.html" style="text-decoration:none; display:inline-flex; align-items:center;">
+        Back to Guided Build
+      </a>
+      <button id="btnNewSet" class="btn btn-light">New set</button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- Setup / Toggles -->
+    <section class="card">
+      <div class="card-title">Set Builder</div>
+      <div class="card-sub">Choose options, then generate a random set. You can retry each molecule as many times as you want.</div>
+
+      <div class="grid-2" style="margin-top:12px;">
+        <div class="panel">
+          <div class="panel-title">Practice Options (toggles)</div>
+
+          <div class="msg msg-soft" style="margin-top:0;">
+            <div style="display:flex; flex-direction:column; gap:10px;">
+              <label style="display:flex; align-items:center; gap:10px;">
+                <input id="toggleHints" type="checkbox" checked />
+                <span><b>Hints</b> ON/OFF</span>
+              </label>
+
+              <label style="display:flex; align-items:center; gap:10px;">
+                <input id="toggleReminders" type="checkbox" checked />
+                <span><b>Reminders</b> ON/OFF</span>
+              </label>
+
+              <label style="display:flex; align-items:center; gap:10px;">
+                <input id="toggleTimer" type="checkbox" />
+                <span><b>Timer</b> ON/OFF</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <label class="label">Random set size</label>
+          <div class="row">
+            <select id="setSize" class="select">
+              <option value="3">3 molecules</option>
+              <option value="5" selected>5 molecules</option>
+              <option value="10">10 molecules</option>
+            </select>
+            <button id="btnStartSet" class="btn btn-primary">Start set</button>
+          </div>
+
+          <div id="progressRow" class="msg msg-soft" style="display:none;">
+            <div class="row between" style="width:100%;">
+              <div>
+                <b id="progressText">Molecule —</b>
+                <div id="modeText" style="font-size:12px; color:#4b5563; margin-top:2px;">—</div>
+              </div>
+              <div style="text-align:right;">
+                <div id="timerBox" style="display:none;">
+                  <div style="font-size:11px; color:#6b7280; font-weight:800;">TIME</div>
+                  <div id="timerText" style="font-size:16px; font-weight:900;">0:00</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="setupNote" class="msg msg-warn" style="margin-top:10px;">
+            Start a set to begin. Your results will appear in a summary screen at the end.
+          </div>
+        </div>
+
+        <div class="panel" id="remindersPanel">
+          <div class="panel-title">Quick reminders (optional)</div>
+
+          <div class="msg msg-warn" style="margin-top:0;">
+            <b>Bonding reminders</b>
+            <ul style="margin:8px 0 0 18px;">
+              <li>Hydrogen makes <b>1 bond</b> and has <b>0 lone pairs</b>.</li>
+              <li>Halogens (F, Cl, Br) usually make <b>1 bond</b> and have <b>3 lone pairs</b>.</li>
+              <li>Oxygen often has <b>2 bonds</b> total and <b>2 lone pairs</b>.</li>
+              <li>Nitrogen often has <b>3 bonds</b> total and <b>1 lone pair</b>.</li>
+            </ul>
+          </div>
+
+          <div class="msg msg-soft">
+            <b>Electron costs</b>
+            <ul style="margin:8px 0 0 18px;">
+              <li>Single bond costs <b>2 e⁻</b></li>
+              <li>Double bond costs <b>4 e⁻</b></li>
+              <li>Triple bond costs <b>6 e⁻</b></li>
+              <li>Lone pair (<b>••</b>) costs <b>2 e⁻</b></li>
+            </ul>
+          </div>
+
+          <div id="bankMini" class="msg msg-soft" style="display:none;">
+            <div class="row between" style="width:100%;">
+              <div>
+                <div style="font-weight:900;">Electron bank (hidden total)</div>
+                <div style="font-size:12px; color:#6b7280;">Used for correctness + prevents overspending.</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:11px; color:#6b7280; font-weight:800;">REMAINING</div>
+                <div id="bankRemainMini" style="font-size:16px; font-weight:900;">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Build area -->
+    <section class="card">
+      <div class="row between">
+        <div>
+          <div class="card-title">Build the Lewis model</div>
+          <div class="card-sub">
+            Drag <b>one bond</b> into the space <b>between atoms</b>. Drag lone pairs (<b>••</b>) into the boxes around atoms. Click a placed item to remove it.
+          </div>
+        </div>
+        <div class="row">
+          <button id="btnCheckModel" class="btn btn-primary" disabled>Check molecule</button>
+          <button id="btnClear" class="btn btn-light" disabled>Clear placements</button>
+          <button id="btnNext" class="btn btn-light" disabled>Next</button>
+        </div>
+      </div>
+
+      <div class="grid-2 wide-left">
+        <div class="panel">
+          <div class="panel-title">
+            <div class="row between" style="width:100%;">
+              <div>
+                <div class="molecule-label">MOLECULE</div>
+                <div id="molName" class="molecule-name" style="margin-top:2px;">—</div>
+                <div id="molHint" class="molecule-hint">Start a set to begin.</div>
+              </div>
+            </div>
+          </div>
+
+          <div id="stage" class="stage">
+            <div id="stageOverlay" class="stage-overlay">Start a set to reveal the model.</div>
+          </div>
+
+          <div id="feedback" class="msg msg-soft" style="display:none;"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">Toolbox</div>
+
+          <div class="toolbox">
+            <div class="tool" draggable="true" data-tool="bond1">
+              <div class="tool-icon"><span class="bond bond1"></span></div>
+              <div>
+                <div class="tool-name">Single bond</div>
+                <div class="tool-cost">Costs 2 e⁻</div>
+              </div>
+            </div>
+
+            <div class="tool" draggable="true" data-tool="bond2">
+              <div class="tool-icon"><span class="bond bond2"></span></div>
+              <div>
+                <div class="tool-name">Double bond</div>
+                <div class="tool-cost">Costs 4 e⁻</div>
+              </div>
+            </div>
+
+            <div class="tool" draggable="true" data-tool="bond3">
+              <div class="tool-icon"><span class="bond bond3"></span></div>
+              <div>
+                <div class="tool-name">Triple bond</div>
+                <div class="tool-cost">Costs 6 e⁻</div>
+              </div>
+            </div>
+
+            <div class="tool" draggable="true" data-tool="lp">
+              <div class="tool-icon"><span class="lp">••</span></div>
+              <div>
+                <div class="tool-name">Lone pair</div>
+                <div class="tool-cost">Costs 2 e⁻</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="msg msg-soft" style="margin-top:12px;">
+            <b>Independent practice note</b>
+            <div style="margin-top:6px; color:#4b5563;">
+              There’s no step-by-step gate here. Build your best Lewis model, then check it.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Summary screen -->
+    <section id="summaryCard" class="card" style="display:none;">
+      <div class="card-title">End-of-set summary</div>
+      <div id="summaryBody" class="msg msg-soft" style="margin-top:10px;"></div>
+      <div class="row" style="margin-top:12px;">
+        <button id="btnRestart" class="btn btn-primary">Start a new set</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="practice.js"></script>
+</body>
+</html>
