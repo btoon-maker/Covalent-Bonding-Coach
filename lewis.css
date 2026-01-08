@@ -273,3 +273,30 @@ body{
 .bond3::after{top:6px}
 
 .lp{font-weight:900}
+
+/* =========================
+   TOPBAR MODE TOGGLES (tabs)
+   ========================= */
+.topbar-right{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+.tabs{display:flex; gap:10px; align-items:center}
+.tab{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  text-decoration:none;
+  border:1px solid rgba(255,255,255,.35);
+  background:transparent;
+  color:#fff;
+  border-radius:999px;
+  padding:8px 12px;
+  font-weight:900;
+  font-size:13px;
+  cursor:pointer;
+  white-space:nowrap;
+}
+.tab:hover{background:rgba(255,255,255,.10)}
+.tab-active{
+  background:#f5c12b;
+  color:#3b0a17;
+  border-color:transparent;
+}
