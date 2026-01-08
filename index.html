@@ -10,7 +10,6 @@
   <header class="topbar topbar-grid">
     <div class="topbar-left"></div>
 
-    <!-- ✅ Centered title + mode pills (like Stoichiometry Coach) -->
     <div class="topbar-center brand-center">
       <div class="brand">
         <div class="brand-dot" aria-hidden="true"></div>
@@ -26,17 +25,22 @@
       </nav>
     </div>
 
-    <!-- ✅ Action button stays visible on the far right -->
-    <div class="topbar-actions">
-      <button id="btnNew" class="btn btn-light">New molecule</button>
-    </div>
+    <div class="topbar-right"></div>
   </header>
 
   <main class="wrap">
     <section class="card molecule-card">
-      <div class="molecule-label">MOLECULE</div>
-      <div id="molName" class="molecule-name">—</div>
-      <div id="molHint" class="molecule-hint">Loading…</div>
+      <div class="card-head">
+        <div class="card-head-left">
+          <div class="molecule-label">MOLECULE</div>
+          <div id="molName" class="molecule-name">—</div>
+          <div id="molHint" class="molecule-hint">Loading…</div>
+        </div>
+
+        <div class="card-head-right">
+          <button id="btnNew" class="btn btn-light">New molecule</button>
+        </div>
+      </div>
     </section>
 
     <section class="card">
