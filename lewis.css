@@ -27,28 +27,21 @@ body{
   gap:12px;
 }
 
-/* ===== HEADER LAYOUT (Stoichiometry-style) ===== */
+/* ===== HEADER LAYOUT (centered title + tabs) ===== */
 .topbar-grid{
   display:grid;
-  grid-template-columns: 1fr auto 1fr; /* left spacer | centered title/tabs | right actions */
+  grid-template-columns: 1fr auto 1fr; /* left spacer | centered title/tabs | right spacer */
   align-items:center;
 }
 
-.topbar-left{min-width:10px;} /* spacer keeps center truly centered */
+.topbar-left{min-width:10px;}
+.topbar-right{min-width:10px;}
 
 .topbar-center{
   display:flex;
   align-items:center;
   justify-content:center;
   gap:16px;
-  flex-wrap:wrap; /* wraps nicely on smaller screens */
-}
-
-.topbar-actions{
-  display:flex;
-  align-items:center;
-  justify-content:flex-end;
-  gap:10px;
   flex-wrap:wrap;
 }
 
@@ -59,7 +52,6 @@ body{
 .brand-title{font-weight:800;font-size:20px;line-height:1.1}
 .brand-sub{font-size:12px;opacity:.9;margin-top:2px}
 
-/* Centered brand text like Stoichiometry Coach */
 .brand-center{
   text-align:center;
 }
@@ -71,7 +63,6 @@ body{
   text-align:center;
 }
 
-/* Pills (tabs) — kept in the header near title */
 .tabs{display:flex; gap:10px; align-items:center}
 .tab{
   display:inline-flex;
@@ -93,6 +84,24 @@ body{
   background:#f5c12b;
   color:#3b0a17;
   border-color:transparent;
+}
+
+/* ===== Card header row with right-side action button ===== */
+.card-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+.card-head .card-head-left{
+  min-width:0;
+}
+.card-head .card-head-right{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:10px;
+  flex-wrap:wrap;
 }
 
 .wrap{
