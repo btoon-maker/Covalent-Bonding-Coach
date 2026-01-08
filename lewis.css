@@ -266,13 +266,13 @@ h2{ margin:0 0 6px; font-size:16px; }
 }
 .atom.small{ width:52px;height:52px; border-radius:14px; }
 .atom .sym{ font-size:18px; }
-.atom .idx{ display:none; }
 
+/* Smaller, cleaner bond slot (between atoms) */
 .bondSlot{
   position:absolute;
-  width:110px;
-  height:48px;
-  border-radius:14px;
+  width:78px;
+  height:40px;
+  border-radius:12px;
   background:#fff;
   border:2px dashed rgba(217,138,160,.55);
   display:grid;
@@ -281,16 +281,18 @@ h2{ margin:0 0 6px; font-size:16px; }
   font-weight:900;
   letter-spacing:.06em;
 }
-.bondSlot .hint{ font-size:12px; opacity:.85; }
-
+.bondSlot .hint{ font-size:11px; opacity:.8; }
 .bondSlot.filled{
   border-style:solid;
   border-color: rgba(217,138,160,.8);
 }
 
+/* Bond line(s) rotate to match the atom-atom direction */
 .bondMark{
-  width:70px; height:20px;
+  width:56px;
+  height:18px;
   position:relative;
+  transform: rotate(var(--rot, 0deg));
 }
 .bondMark[data-order="1"]::before,
 .bondMark[data-order="2"]::before,
@@ -317,11 +319,8 @@ h2{ margin:0 0 6px; font-size:16px; }
 .bondMark[data-order="2"]::before{
   transform:translateY(calc(-50% - 7px));
 }
-.bondMark[data-order="3"] .line2,
-.bondMark[data-order="3"] .line3{ display:none; } /* not used */
-.bondMark[data-order="3"]::before{
-  transform:translateY(-50%);
-}
+
+/* Triple: use ::before + ::after + extra <span> */
 .bondMark[data-order="3"]::after{
   content:"";
   position:absolute;
@@ -333,7 +332,6 @@ h2{ margin:0 0 6px; font-size:16px; }
   border-radius:999px;
 }
 .bondMark[data-order="3"] span{
-  content:"";
   position:absolute;
   left:0; right:0;
   top:50%;
@@ -343,9 +341,6 @@ h2{ margin:0 0 6px; font-size:16px; }
   border-radius:999px;
   display:block;
 }
-
-/* rotate bond visuals for vertical bonds */
-.bondSlot.vertical .bondMark{ transform:rotate(90deg); }
 
 .lpSlot{
   position:absolute;
