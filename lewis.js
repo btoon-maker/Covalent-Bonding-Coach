@@ -212,7 +212,7 @@ function loadMolecule(mol){
   state.lonePlaced = {};
   state.showCorrect = false;
 
-  el.molName.textContent = formatFormula(mol.name);
+  el.molName.innerHTML = formatFormula(mol.name);
   el.molHint.textContent = "Confirm electrons, choose a central atom, then build.";
 
   el.valenceInput.value = "";
