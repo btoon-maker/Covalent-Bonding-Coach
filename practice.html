@@ -7,20 +7,27 @@
   <link rel="stylesheet" href="lewis.css" />
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <div class="brand-dot" aria-hidden="true"></div>
-      <div>
-        <div class="brand-title">Covalent Bonding Coach</div>
-        <div class="brand-sub">Independent & Challenge Practice</div>
-      </div>
-    </div>
+  <header class="topbar topbar-grid">
+    <div class="topbar-left"></div>
 
-    <div class="topbar-right">
+    <!-- ✅ Centered title + mode pills -->
+    <div class="topbar-center brand-center">
+      <div class="brand">
+        <div class="brand-dot" aria-hidden="true"></div>
+        <div>
+          <div class="brand-title">Covalent Bonding Coach</div>
+          <div class="brand-sub">Independent &amp; Challenge Practice</div>
+        </div>
+      </div>
+
       <nav class="tabs" aria-label="Mode">
         <a class="tab" href="./index.html">Guided Build</a>
         <a class="tab tab-active" href="./practice.html">Independent Practice</a>
       </nav>
+    </div>
+
+    <!-- ✅ Always visible on the far right -->
+    <div class="topbar-actions">
       <button id="btnNewSet" class="btn btn-light">New set</button>
     </div>
   </header>
