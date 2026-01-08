@@ -8,78 +8,80 @@
 </head>
 <body>
   <header class="topbar">
-    <div class="topbar__inner">
+    <div class="topbar-inner">
       <div class="brand">
-        <div class="brand__dot" aria-hidden="true"></div>
+        <div class="brand-badge" aria-hidden="true"></div>
         <div>
-          <h1>Covalent Bonding Coach</h1>
-          <p>Count valence electrons → choose/lock central atom → build the Lewis model.</p>
+          <div class="brand-title">Covalent Bonding Coach</div>
+          <div class="brand-sub">Count valence electrons → choose/lock central atom → build the Lewis model.</div>
         </div>
       </div>
-      <button id="btnNew" class="btn btn--ghost" type="button">New molecule</button>
+      <button id="btnNew" class="btn btn-light">New molecule</button>
     </div>
   </header>
 
-  <main class="wrap">
-    <section class="card">
-      <div class="moleculeHeader">
+  <main class="page">
+    <section class="card molecule-card">
+      <div class="label">MOLECULE</div>
+      <div class="molecule-row">
         <div>
-          <div class="label">MOLECULE</div>
-          <div class="molName" id="molName">—</div>
-          <div class="subtle" id="molPrompt">Loading…</div>
+          <div id="molName" class="mol-name">—</div>
+          <div id="molHint" class="muted">Loading…</div>
         </div>
       </div>
     </section>
 
-    <!-- STEP 1 -->
     <section class="card">
-      <h2>Step 1: Count electrons + choose the central atom</h2>
-      <p class="subtle">
-        You must confirm the <b>total valence electrons</b> before building.
-        (Example: O has 6, so O<sub>2</sub> has 12.)
-      </p>
+      <div class="section-title">Step 1: Count electrons + choose the central atom</div>
+      <div class="muted small">
+        You must confirm the <b>total valence electrons</b> before building. (Example: O has 6, so O<sub>2</sub> has 12.)
+      </div>
 
-      <div class="grid2">
+      <div class="grid-2">
         <div class="panel">
-          <label class="fieldLabel" for="valenceInput">Total valence electrons (number)</label>
+          <label class="field-label" for="valenceInput">Total valence electrons (number)</label>
           <div class="row">
-            <input id="valenceInput" class="input" inputmode="numeric" placeholder="Enter total…" />
-            <button id="btnCheckValence" class="btn" type="button">Check</button>
+            <input id="valenceInput" class="input" type="number" inputmode="numeric" placeholder="Enter total…" />
+            <button id="btnCheckValence" class="btn">Check</button>
           </div>
-          <div id="valenceMsg" class="msg msg--hint">Enter a number, then click <b>Check</b>.</div>
+          <div id="valenceMsg" class="msg msg-warn" style="display:none;"></div>
 
-          <hr class="sep" />
+          <div class="divider"></div>
 
-          <label class="fieldLabel" for="centralSelect">Central atom</label>
+          <label class="field-label" for="centralSelect">Central atom</label>
           <div class="row">
-            <select id="centralSelect" class="select" disabled></select>
-            <button id="btnLockCentral" class="btn btn--primary" type="button" disabled>Lock central atom</button>
+            <select id="centralSelect" class="select" disabled>
+              <option value="">Select…</option>
+            </select>
+            <button id="btnLockCentral" class="btn" disabled>Lock central atom</button>
           </div>
+
           <div class="row">
-            <button id="btnReset" class="btn btn--ghost" type="button">Reset build</button>
+            <button id="btnReset" class="btn btn-ghost">Reset build</button>
           </div>
-          <div id="centralMsg" class="msg msg--hint">Check the total electrons first.</div>
+
+          <div id="centralMsg" class="msg msg-neutral">Check the total electrons first.</div>
         </div>
 
-        <div class="panel">
-          <div class="bankHeader">
+        <div class="panel bank">
+          <div class="bank-head">
             <div>
-              <div class="bankTitle">Electron bank</div>
-              <div class="subtle">Bonds and lone pairs spend electrons.</div>
+              <div class="bank-title">Electron bank</div>
+              <div class="muted small">Bonds and lone pairs spend electrons.</div>
             </div>
-            <div class="bankPills">
+            <div class="bank-stats">
               <div class="pill">
-                <div class="pill__label">Total</div>
-                <div class="pill__value" id="bankTotal">—</div>
+                <div class="pill-label">Total</div>
+                <div id="bankTotal" class="pill-num">—</div>
               </div>
               <div class="pill">
-                <div class="pill__label">Remaining</div>
-                <div class="pill__value" id="bankRemain">—</div>
+                <div class="pill-label">Remaining</div>
+                <div id="bankRemain" class="pill-num">—</div>
               </div>
             </div>
           </div>
 
-          <div id="bankMsg" class="msg msg--warn">
+          <div id="bankMsg" class="msg msg-warn">
             Electron bank will appear after you correctly confirm the total valence electrons.
           </div>
 
@@ -93,83 +95,78 @@
       </div>
     </section>
 
-    <!-- STEP 2 -->
     <section class="card">
-      <div class="step2Head">
-        <div>
-          <h2>Step 2: Build the model</h2>
-          <p class="subtle">
-            Drag <b>one bond</b> into the <b>space between atoms</b>. Drag <b>lone pairs (••)</b> into the boxes around atoms.
-            Click a placed item to remove it.
-          </p>
-        </div>
-        <div class="btnRow">
-          <button id="btnCheck" class="btn btn--primary" type="button" disabled>Check molecule</button>
-          <button id="btnShow" class="btn btn--ghost" type="button" disabled>Show correct model</button>
-          <button id="btnClear" class="btn btn--ghost" type="button" disabled>Clear placements</button>
-        </div>
+      <div class="section-title">Step 2: Build the model</div>
+      <div class="muted small">
+        Drag one bond into the <b>space between atoms</b>. Drag lone pairs (••) into the boxes around atoms.
+        Click a placed item to remove it.
       </div>
 
-      <div class="grid2 grid2--wide">
+      <div class="row actions">
+        <button id="btnCheckMol" class="btn" disabled>Check molecule</button>
+        <button id="btnShowCorrect" class="btn btn-light" disabled>Show correct model</button>
+        <button id="btnClear" class="btn btn-ghost" disabled>Clear placements</button>
+      </div>
+
+      <div class="grid-2 model-grid">
         <div class="panel">
-          <div class="panelTitle">Model</div>
-          <div id="modelArea" class="modelArea">
-            <div class="modelLockedMsg" id="modelLockedMsg">
-              Confirm total valence electrons and lock the central atom to begin.
-            </div>
+          <div class="panel-title">Model</div>
+          <div id="modelStage" class="stage">
+            <div class="stage-placeholder muted">Confirm total valence electrons and lock the central atom to begin.</div>
           </div>
-          <div class="subBar">
-            <span class="subtle" id="buildHint">—</span>
+          <div class="stage-footer muted small">
+            Build bonds between atoms first. Then add lone pairs (••) to complete outer shells.
           </div>
-          <div id="feedback" class="feedback" hidden></div>
         </div>
 
-        <div class="panel">
-          <div class="panelTitle">Toolbox</div>
+        <div class="panel toolbox">
+          <div class="panel-title">Toolbox</div>
 
-          <div class="tool" draggable="true" data-tool="bond1" aria-label="Single bond">
-            <div class="toolIcon toolIcon--bond1" aria-hidden="true"></div>
+          <div class="tool" draggable="true" data-item="single" aria-label="Single bond">
+            <div class="tool-icon">—</div>
             <div>
-              <div class="toolName">Single bond</div>
-              <div class="toolSub">Costs 2 e⁻</div>
+              <div class="tool-name">Single bond</div>
+              <div class="tool-sub">Costs 2 e⁻</div>
             </div>
           </div>
 
-          <div class="tool" draggable="true" data-tool="bond2" aria-label="Double bond">
-            <div class="toolIcon toolIcon--bond2" aria-hidden="true"></div>
+          <div class="tool" draggable="true" data-item="double" aria-label="Double bond">
+            <div class="tool-icon">=</div>
             <div>
-              <div class="toolName">Double bond</div>
-              <div class="toolSub">Costs 4 e⁻</div>
+              <div class="tool-name">Double bond</div>
+              <div class="tool-sub">Costs 4 e⁻</div>
             </div>
           </div>
 
-          <div class="tool" draggable="true" data-tool="bond3" aria-label="Triple bond">
-            <div class="toolIcon toolIcon--bond3" aria-hidden="true"></div>
+          <div class="tool" draggable="true" data-item="triple" aria-label="Triple bond">
+            <div class="tool-icon">≡</div>
             <div>
-              <div class="toolName">Triple bond</div>
-              <div class="toolSub">Costs 6 e⁻</div>
+              <div class="tool-name">Triple bond</div>
+              <div class="tool-sub">Costs 6 e⁻</div>
             </div>
           </div>
 
-          <div class="tool" draggable="true" data-tool="lp" aria-label="Lone pair">
-            <div class="toolIcon toolIcon--lp" aria-hidden="true">••</div>
+          <div class="tool" draggable="true" data-item="lone" aria-label="Lone pair">
+            <div class="tool-icon">••</div>
             <div>
-              <div class="toolName">Lone pair</div>
-              <div class="toolSub">Costs 2 e⁻</div>
+              <div class="tool-name">Lone pair</div>
+              <div class="tool-sub">Costs 2 e⁻</div>
             </div>
           </div>
 
-          <div class="panelNote">
-            <b>Quick reminders</b>
+          <div class="tipbox">
+            <div class="tip-title">Quick reminders</div>
             <ul>
-              <li>Hydrogen makes <b>1 bond</b> and has <b>0 lone pairs</b>.</li>
-              <li>Halogens (F, Cl, Br) usually make <b>1 bond</b> and have <b>3 lone pairs</b>.</li>
-              <li>Oxygen often has <b>2 bonds total</b> and <b>2 lone pairs</b>.</li>
-              <li>Nitrogen often has <b>3 bonds total</b> and <b>1 lone pair</b>.</li>
+              <li><b>Hydrogen</b> makes <b>1 bond</b> and has <b>0 lone pairs</b>.</li>
+              <li><b>Halogens</b> (F, Cl, Br) usually make <b>1 bond</b> and have <b>3 lone pairs</b>.</li>
+              <li><b>Oxygen</b> often has <b>2 bonds total</b> and <b>2 lone pairs</b>.</li>
+              <li><b>Nitrogen</b> often has <b>3 bonds total</b> and <b>1 lone pair</b>.</li>
             </ul>
           </div>
         </div>
       </div>
+
+      <div id="feedback" class="feedback" style="display:none;"></div>
     </section>
   </main>
 
