@@ -10,7 +10,6 @@
   <header class="topbar topbar-grid">
     <div class="topbar-left"></div>
 
-    <!-- ✅ Centered title + mode pills -->
     <div class="topbar-center brand-center">
       <div class="brand">
         <div class="brand-dot" aria-hidden="true"></div>
@@ -26,17 +25,20 @@
       </nav>
     </div>
 
-    <!-- ✅ Always visible on the far right -->
-    <div class="topbar-actions">
-      <button id="btnNewSet" class="btn btn-light">New set</button>
-    </div>
+    <div class="topbar-right"></div>
   </header>
 
   <main class="wrap">
-    <!-- Setup / Toggles -->
     <section class="card">
-      <div class="card-title">Set Builder</div>
-      <div class="card-sub">Choose options, then generate a random set. You can retry each molecule as many times as you want.</div>
+      <div class="card-head">
+        <div class="card-head-left">
+          <div class="card-title">Set Builder</div>
+          <div class="card-sub">Choose options, then generate a random set. You can retry each molecule as many times as you want.</div>
+        </div>
+        <div class="card-head-right">
+          <button id="btnNewSet" class="btn btn-light">New set</button>
+        </div>
+      </div>
 
       <div class="grid-2" style="margin-top:12px;">
         <div class="panel">
@@ -132,7 +134,6 @@
       </div>
     </section>
 
-    <!-- Build area -->
     <section class="card">
       <div class="row between">
         <div>
@@ -214,7 +215,6 @@
       </div>
     </section>
 
-    <!-- Summary screen -->
     <section id="summaryCard" class="card" style="display:none;">
       <div class="card-title">End-of-set summary</div>
       <div id="summaryBody" class="msg msg-soft" style="margin-top:10px;"></div>
