@@ -1,118 +1,141 @@
-// Independent & Challenge Practice
-// - Does NOT modify Guided Build files.
-// - Uses same molecule data structure + same drag/drop interface + same validation logic style.
-// - Adds session/set runner, toggles, timer, and summary.
+// Independent & Challenge Practice (practice.js)
+// Uses SAME molecule structure, SAME interface behaviors, SAME validation style,
+// but with an expanded practice-only bank to reduce memorization.
 
-const VALENCE = { H:1, F:7, Cl:7, Br:7, C:4, N:5, O:6, P:5, B:3, S:6 };
+const VALENCE = { H:1, F:7, Cl:7, Br:7, C:4, N:5, O:6, P:5 };
 const COST = { bond1:2, bond2:4, bond3:6, lp:2 };
 
-// Existing bank + a few more "challenging-but-still-clean" molecules
-const MOLECULES = [
-  // --- from your Guided Build bank ---
-  { name:"Br2", type:"diatomic", atoms:["Br","Br"], central:null,
-    target:{ bonds:[{a:0,b:1,order:1}], lonePairs:{0:3,1:3} } },
-  { name:"F2", type:"diatomic", atoms:["F","F"], central:null,
-    target:{ bonds:[{a:0,b:1,order:1}], lonePairs:{0:3,1:3} } },
-  { name:"H2", type:"diatomic", atoms:["H","H"], central:null,
-    target:{ bonds:[{a:0,b:1,order:1}], lonePairs:{0:0,1:0} } },
-  { name:"N2", type:"diatomic", atoms:["N","N"], central:null,
-    target:{ bonds:[{a:0,b:1,order:3}], lonePairs:{0:1,1:1} } },
-  { name:"O2", type:"diatomic", atoms:["O","O"], central:null,
-    target:{ bonds:[{a:0,b:1,order:2}], lonePairs:{0:2,1:2} } },
-  { name:"HF", type:"diatomic", atoms:["H","F"], central:null,
+/**
+ * PRACTICE BANK
+ * - Partial overlap with Guided Build (HF, CO2, H2O, NH3, PF3, CF4)
+ * - Adds additional molecules that still fit existing layout types
+ * - Avoids radicals/odd-electron species to keep grading clean
+ */
+const PRACTICE_MOLECULES = [
+  // ===== Overlap (some, not all) =====
+  { name:"HF",  type:"diatomic", atoms:["H","F"],  central:null,
     target:{ bonds:[{a:0,b:1,order:1}], lonePairs:{0:0,1:3} } },
-
-  { name:"CO2", type:"linear3", atoms:["O","C","O"], central:1,
+  { name:"CO2", type:"linear3",  atoms:["O","C","O"], central:1,
     target:{ bonds:[{a:1,b:0,order:2},{a:1,b:2,order:2}], lonePairs:{0:2,1:0,2:2} } },
-  { name:"HCN", type:"linear3", atoms:["H","C","N"], central:1,
-    target:{ bonds:[{a:1,b:0,order:1},{a:1,b:2,order:3}], lonePairs:{0:0,1:0,2:1} } },
-
-  { name:"PF3", type:"trigonal", atoms:["P","F","F","F"], central:0,
-    target:{ bonds:[{a:0,b:1,order:1},{a:0,b:2,order:1},{a:0,b:3,order:1}],
-      lonePairs:{0:1,1:3,2:3,3:3} } },
+  { name:"H2O", type:"bent",     atoms:["O","H","H"], central:0,
+    target:{ bonds:[{a:0,b:1,order:1},{a:0,b:2,order:1}], lonePairs:{0:2,1:0,2:0} } },
   { name:"NH3", type:"trigonal", atoms:["N","H","H","H"], central:0,
     target:{ bonds:[{a:0,b:1,order:1},{a:0,b:2,order:1},{a:0,b:3,order:1}],
       lonePairs:{0:1,1:0,2:0,3:0} } },
-
-  { name:"H2O", type:"bent", atoms:["O","H","H"], central:0,
-    target:{ bonds:[{a:0,b:1,order:1},{a:0,b:2,order:1}], lonePairs:{0:2,1:0,2:0} } },
-
-  { name:"CF4", type:"tetra", atoms:["C","F","F","F","F"], central:0,
-    target:{ bonds:[{a:0,b:1,order:1},{a:0,b:2,order:1},{a:0,b:3,order:1},{a:0,b:4,order:1}],
-      lonePairs:{0:0,1:3,2:3,3:3,4:3} } },
-  { name:"CBr4", type:"tetra", atoms:["C","Br","Br","Br","Br"], central:0,
-    target:{ bonds:[{a:0,b:1,order:1},{a:0,b:2,order:1},{a:0,b:3,order:1},{a:0,b:4,order:1}],
-      lonePairs:{0:0,1:3,2:3,3:3,4:3} } },
-
-  // --- additional challenge bank (still matches your supported layouts) ---
-  // Formaldehyde: CH2O (trigonal around C): O double, two H single
-  { name:"CH2O", type:"trigonal", atoms:["C","O","H","H"], central:0,
-    target:{ bonds:[{a:0,b:1,order:2},{a:0,b:2,order:1},{a:0,b:3,order:1}],
-      lonePairs:{0:0,1:2,2:0,3:0} } },
-
-  // Boron trifluoride: BF3 (trigonal) — classic incomplete octet on B
-  { name:"BF3", type:"trigonal", atoms:["B","F","F","F"], central:0,
+  { name:"PF3", type:"trigonal", atoms:["P","F","F","F"], central:0,
     target:{ bonds:[{a:0,b:1,order:1},{a:0,b:2,order:1},{a:0,b:3,order:1}],
-      lonePairs:{0:0,1:3,2:3,3:3} } },
+      lonePairs:{0:1,1:3,2:3,3:3} } },
+  { name:"CF4", type:"tetra",    atoms:["C","F","F","F","F"], central:0,
+    target:{ bonds:[{a:0,b:1,order:1},{a:0,b:2,order:1},{a:0,b:3,order:1},{a:0,b:4,order:1}],
+      lonePairs:{0:0,1:3,2:3,3:3,4:3} } },
 
-  // Sulfur dioxide: SO2 (bent) — common “expanded octet” vibe; use one typical structure (O=S=O with 1 LP on S)
-  { name:"SO2", type:"bent", atoms:["S","O","O"], central:0,
-    target:{ bonds:[{a:0,b:1,order:2},{a:0,b:2,order:2}],
-      lonePairs:{0:1,1:2,2:2} } },
+  // ===== New (reduces memorization) =====
+
+  // Diatomic
+  { name:"Cl2", type:"diatomic", atoms:["Cl","Cl"], central:null,
+    target:{ bonds:[{a:0,b:1,order:1}], lonePairs:{0:3,1:3} } },
+  { name:"HCl", type:"diatomic", atoms:["H","Cl"], central:null,
+    target:{ bonds:[{a:0,b:1,order:1}], lonePairs:{0:0,1:3} } },
+  { name:"HBr", type:"diatomic", atoms:["H","Br"], central:null,
+    target:{ bonds:[{a:0,b:1,order:1}], lonePairs:{0:0,1:3} } },
+
+  // Linear 3
+  { name:"FCN", type:"linear3", atoms:["F","C","N"], central:1,
+    target:{ bonds:[{a:1,b:0,order:1},{a:1,b:2,order:3}], lonePairs:{0:3,1:0,2:1} } },
+  { name:"ClCN", type:"linear3", atoms:["Cl","C","N"], central:1,
+    target:{ bonds:[{a:1,b:0,order:1},{a:1,b:2,order:3}], lonePairs:{0:3,1:0,2:1} } },
+
+  // Bent 3
+  { name:"OF2", type:"bent", atoms:["O","F","F"], central:0,
+    target:{ bonds:[{a:0,b:1,order:1},{a:0,b:2,order:1}], lonePairs:{0:2,1:3,2:3} } },
+  { name:"Cl2O", type:"bent", atoms:["O","Cl","Cl"], central:0,
+    target:{ bonds:[{a:0,b:1,order:1},{a:0,b:2,order:1}], lonePairs:{0:2,1:3,2:3} } },
+
+  // Trigonal
+  { name:"NF3", type:"trigonal", atoms:["N","F","F","F"], central:0,
+    target:{ bonds:[{a:0,b:1,order:1},{a:0,b:2,order:1},{a:0,b:3,order:1}],
+      lonePairs:{0:1,1:3,2:3,3:3} } },
+  { name:"PCl3", type:"trigonal", atoms:["P","Cl","Cl","Cl"], central:0,
+    target:{ bonds:[{a:0,b:1,order:1},{a:0,b:2,order:1},{a:0,b:3,order:1}],
+      lonePairs:{0:1,1:3,2:3,3:3} } },
+  { name:"PBr3", type:"trigonal", atoms:["P","Br","Br","Br"], central:0,
+    target:{ bonds:[{a:0,b:1,order:1},{a:0,b:2,order:1},{a:0,b:3,order:1}],
+      lonePairs:{0:1,1:3,2:3,3:3} } },
+
+  // Tetrahedral
+  { name:"CH4", type:"tetra", atoms:["C","H","H","H","H"], central:0,
+    target:{ bonds:[{a:0,b:1,order:1},{a:0,b:2,order:1},{a:0,b:3,order:1},{a:0,b:4,order:1}],
+      lonePairs:{0:0,1:0,2:0,3:0,4:0} } },
+  { name:"CCl4", type:"tetra", atoms:["C","Cl","Cl","Cl","Cl"], central:0,
+    target:{ bonds:[{a:0,b:1,order:1},{a:0,b:2,order:1},{a:0,b:3,order:1},{a:0,b:4,order:1}],
+      lonePairs:{0:0,1:3,2:3,3:3,4:3} } },
 ];
 
-// ---- DOM ----
+// ===== DOM =====
 const el = {
   btnNewSet: document.getElementById("btnNewSet"),
   btnStartSet: document.getElementById("btnStartSet"),
+  btnCheckModel: document.getElementById("btnCheckModel"),
+  btnClear: document.getElementById("btnClear"),
+  btnNext: document.getElementById("btnNext"),
   btnRestart: document.getElementById("btnRestart"),
 
   toggleHints: document.getElementById("toggleHints"),
   toggleReminders: document.getElementById("toggleReminders"),
   toggleTimer: document.getElementById("toggleTimer"),
-  setSize: document.getElementById("setSize"),
+  remindersPanel: document.getElementById("remindersPanel"),
 
+  setSize: document.getElementById("setSize"),
   progressRow: document.getElementById("progressRow"),
   progressText: document.getElementById("progressText"),
   modeText: document.getElementById("modeText"),
-
-  remindersPanel: document.getElementById("remindersPanel"),
-  bankMini: document.getElementById("bankMini"),
-  bankRemainMini: document.getElementById("bankRemainMini"),
-
   timerBox: document.getElementById("timerBox"),
   timerText: document.getElementById("timerText"),
 
   molName: document.getElementById("molName"),
   molHint: document.getElementById("molHint"),
-
   stage: document.getElementById("stage"),
   stageOverlay: document.getElementById("stageOverlay"),
-
-  btnCheckModel: document.getElementById("btnCheckModel"),
-  btnClear: document.getElementById("btnClear"),
-  btnNext: document.getElementById("btnNext"),
-
   feedback: document.getElementById("feedback"),
-
-  setupNote: document.getElementById("setupNote"),
 
   summaryCard: document.getElementById("summaryCard"),
   summaryBody: document.getElementById("summaryBody"),
+
+  bankMini: document.getElementById("bankMini"),
+  bankRemainMini: document.getElementById("bankRemainMini"),
 };
 
-// ---- State ----
+// ===== State =====
 let session = null;
+let timerInterval = null;
+let startedAt = null;
 
 function formatFormula(str){
   return str.replace(/(\d+)/g, "<sub>$1</sub>");
 }
-
 function totalValence(mol){
-  return mol.atoms.reduce((sum, sym) => sum + (VALENCE[sym] ?? 0), 0);
+  return mol.atoms.reduce((sum, sym)=> sum + (VALENCE[sym] ?? 0), 0);
+}
+function bondKey(a,b){
+  const x = Math.min(a,b), y = Math.max(a,b);
+  return `${x}-${y}`;
+}
+function shuffle(arr){
+  const a = arr.slice();
+  for (let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
 }
 
-function setOverlay(isLocked, text){
+function setEnabledBuild(on){
+  el.btnCheckModel.disabled = !on;
+  el.btnClear.disabled = !on;
+  el.btnNext.disabled = !on;
+}
+
+function lockStage(isLocked, text){
   el.stageOverlay.style.display = isLocked ? "flex" : "none";
   el.stageOverlay.textContent = text || "";
 }
@@ -128,211 +151,46 @@ function flashFeedback(text, kind="soft"){
   el.feedback.textContent = text;
 }
 
-function updateModeText(){
-  const hintsOn = el.toggleHints.checked;
-  const remindersOn = el.toggleReminders.checked;
-  const timerOn = el.toggleTimer.checked;
-
-  const parts = [
-    hintsOn ? "Hints: ON" : "Hints: OFF",
-    remindersOn ? "Reminders: ON" : "Reminders: OFF",
-    timerOn ? "Timer: ON" : "Timer: OFF",
-  ];
-  el.modeText.textContent = parts.join(" • ");
-
-  el.remindersPanel.style.display = remindersOn ? "block" : "none";
-  // Bank mini display is controlled by reminders (but bank still exists internally)
-  el.bankMini.style.display = remindersOn ? "block" : "none";
-  el.timerBox.style.display = timerOn ? "block" : "none";
-}
-
-function enableBuildUI(on){
-  el.btnCheckModel.disabled = !on;
-  el.btnClear.disabled = !on;
-  el.btnNext.disabled = !on;
-}
-
-// ---- Random set ----
-function sampleWithoutReplacement(arr, n){
-  const copy = arr.slice();
-  for (let i = copy.length - 1; i > 0; i--){
-    const j = Math.floor(Math.random() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
-  }
-  return copy.slice(0, Math.min(n, copy.length));
-}
-
-function startNewSet(){
-  const n = Number(el.setSize.value);
-  const picked = sampleWithoutReplacement(MOLECULES, n);
-
-  session = {
-    options: {
-      hints: el.toggleHints.checked,
-      reminders: el.toggleReminders.checked,
-      timer: el.toggleTimer.checked,
-    },
-    set: picked,
-    idx: 0,
-
-    // per-molecule record
-    attemptsByMol: picked.map(()=>0),
-    solvedByMol: picked.map(()=>false),
-    timeByMolMs: picked.map(()=>0),
-
-    // error tracking
-    errorCounts: { electron:0, bonding:0, lonepairs:0, overspent:0 },
-
-    // totals
-    totalAttempts: 0,
-  };
-
-  el.summaryCard.style.display = "none";
-  el.setupNote.style.display = "none";
-  el.progressRow.style.display = "block";
-  updateModeText();
-
-  loadCurrentMolecule();
-}
-
-function setProgressUI(){
-  const currentNumber = session.idx + 1;
-  const total = session.set.length;
-  el.progressText.textContent = `Molecule ${currentNumber} of ${total}`;
-}
-
-function loadCurrentMolecule(){
-  const mol = session.set[session.idx];
-
-  // Reset build state for this molecule
-  session.build = createBuildState(mol);
-
-  // UI header
-  el.molName.innerHTML = formatFormula(mol.name);
-  el.molHint.textContent = "Build the model. Check when ready.";
-  setProgressUI();
-
-  // Timer
-  stopTimer();
-  resetTimerUI();
-  if (session.options.timer){
-    startTimer();
-  }
-
-  // Render model immediately (no step gating)
-  clearStage();
-  session.build.layout = computeLayout(mol);
-  renderModel();
-
-  setOverlay(false);
-  enableBuildUI(true);
-  el.btnNext.disabled = true; // only enable after at least one check
-
-  // Bank mini UI (remaining only)
-  el.bankRemainMini.textContent = String(session.build.bankRemain);
-
-  // Clear feedback
-  el.feedback.style.display = "none";
-  el.feedback.className = "msg msg-soft";
-  el.feedback.textContent = "";
-}
-
-// ---- Timer helpers ----
-let timerStart = null;
-let timerInterval = null;
-
-function resetTimerUI(){
-  el.timerText.textContent = "0:00";
-}
-
-function startTimer(){
-  timerStart = Date.now();
-  timerInterval = setInterval(()=>{
-    const ms = Date.now() - timerStart;
-    el.timerText.textContent = formatTime(ms);
-  }, 250);
-}
-
 function stopTimer(){
   if (timerInterval) clearInterval(timerInterval);
   timerInterval = null;
 }
-
-function formatTime(ms){
-  const totalSec = Math.floor(ms / 1000);
-  const m = Math.floor(totalSec / 60);
-  const s = totalSec % 60;
-  return `${m}:${String(s).padStart(2,"0")}`;
+function startTimer(){
+  stopTimer();
+  startedAt = Date.now();
+  tickTimer();
+  timerInterval = setInterval(tickTimer, 250);
+}
+function tickTimer(){
+  if (!startedAt) return;
+  const sec = Math.floor((Date.now() - startedAt) / 1000);
+  const m = Math.floor(sec/60);
+  const s = sec % 60;
+  el.timerText.textContent = `${m}:${String(s).padStart(2,"0")}`;
+}
+function getElapsedSeconds(){
+  if (!startedAt) return 0;
+  return Math.floor((Date.now()-startedAt)/1000);
 }
 
-// ---- Build engine (same interaction style as Guided Build) ----
-function createBuildState(mol){
-  const bankTotal = totalValence(mol);
+function applyToggleUI(){
+  // reminders panel show/hide
+  el.remindersPanel.style.display = el.toggleReminders.checked ? "block" : "none";
 
-  return {
-    mol,
-    bankTotal,
-    bankRemain: bankTotal,
-    placed: {
-      bonds: new Map(),      // "a-b" => order
-      lonePairs: new Map(),  // "atomIdx|slotId" => true
-    },
-    layout: null,
-  };
+  // timer show/hide (only when set is running)
+  const setRunning = !!session && session.inSet;
+  el.timerBox.style.display = (setRunning && el.toggleTimer.checked) ? "block" : "none";
+
+  // mini bank only shown during set
+  el.bankMini.style.display = setRunning ? "block" : "none";
 }
 
-function bondKey(a,b){
-  const x = Math.min(a,b);
-  const y = Math.max(a,b);
-  return `${x}-${y}`;
-}
-
-function canSpend(cost){
-  return session.build.bankRemain >= cost;
-}
-function spend(cost){
-  session.build.bankRemain -= cost;
-  if (session.build.bankRemain < 0) session.build.bankRemain = 0;
-  if (session.options.reminders) el.bankRemainMini.textContent = String(session.build.bankRemain);
-}
-function refund(cost){
-  session.build.bankRemain += cost;
-  if (session.build.bankRemain > session.build.bankTotal) session.build.bankRemain = session.build.bankTotal;
-  if (session.options.reminders) el.bankRemainMini.textContent = String(session.build.bankRemain);
-}
-
-// --- LP side-blocking fix (same fix you just validated) ---
-function computeBlockedSides(atoms, connections){
-  const blocked = {};
-  const centerOf = (idx) => {
-    const A = atoms.find(t => t.idx === idx);
-    return { cx: A.x + 27, cy: A.y + 27 };
-  };
-  const sideFromTo = (fromIdx, toIdx) => {
-    const F = centerOf(fromIdx);
-    const T = centerOf(toIdx);
-    const dx = T.cx - F.cx;
-    const dy = T.cy - F.cy;
-
-    if (Math.abs(dx) >= Math.abs(dy)) return dx > 0 ? "right" : "left";
-    return dy > 0 ? "bottom" : "top";
-  };
-  const opposite = (side) => (
-    side === "left" ? "right" :
-    side === "right" ? "left" :
-    side === "top" ? "bottom" : "top"
-  );
-
-  connections.forEach(({a,b})=>{
-    const sA = sideFromTo(a,b);
-    const sB = opposite(sA);
-    blocked[a] = blocked[a] || new Set();
-    blocked[b] = blocked[b] || new Set();
-    blocked[a].add(sA);
-    blocked[b].add(sB);
+function initToolbox(){
+  document.querySelectorAll(".tool").forEach(toolEl=>{
+    toolEl.addEventListener("dragstart",(e)=>{
+      e.dataTransfer.setData("text/plain", toolEl.dataset.tool);
+    });
   });
-
-  return blocked;
 }
 
 function computeLayout(mol){
@@ -342,43 +200,23 @@ function computeLayout(mol){
   const atoms = [];
   const bonds = [];
   const lpSlots = [];
-  const connections = [];
 
-  const isH = (sym) => sym === "H";
+  const isH = (sym)=> sym==="H";
 
-  const addLP = (atomIdx, x, y, slotId) => {
-    lpSlots.push({ atomIdx, x, y, slotId });
-  };
+  const addLP = (atomIdx, x, y, slotId)=> lpSlots.push({atomIdx,x,y,slotId});
 
-  const addLPBoxesAround = (atomIdx, x, y, sym, blockedSides=[]) => {
+  const addLPBoxesAround = (atomIdx, x, y, sym, blockedSide=null)=>{
     if (isH(sym)) return;
-    const blocked = new Set(blockedSides);
-
     const offsets = [
-      {id:"top",    dx: 16, dy:-28},
-      {id:"bottom", dx: 16, dy: 66},
-      {id:"left",   dx:-28, dy: 18},
-      {id:"right",  dx: 60, dy: 18},
+      {id:"top",    dx: 16, dy:-24},
+      {id:"bottom", dx: 16, dy: 62},
+      {id:"left",   dx:-22, dy: 18},
+      {id:"right",  dx: 54, dy: 18},
     ];
-
     offsets.forEach(o=>{
-      if (blocked.has(o.id)) return;
+      if (blockedSide && o.id===blockedSide) return;
       addLP(atomIdx, x+o.dx, y+o.dy, o.id);
     });
-  };
-
-  const bondZoneBetween = (aIdx,bIdx) => {
-    const A = atoms.find(x=>x.idx===aIdx);
-    const B = atoms.find(x=>x.idx===bIdx);
-    const ax = A.x+27, ay=A.y+27;
-    const bx = B.x+27, by=B.y+27;
-
-    bonds.push({
-      a:aIdx, b:bIdx,
-      x: Math.round((ax+bx)/2 - 49),
-      y: Math.round((ay+by)/2 - 22)
-    });
-    connections.push({a:aIdx,b:bIdx});
   };
 
   if (mol.type === "diatomic"){
@@ -389,11 +227,11 @@ function computeLayout(mol){
     atoms.push({idx:0, sym:mol.atoms[0], x:xLeft-27, y:yAtom-27});
     atoms.push({idx:1, sym:mol.atoms[1], x:xRight-27, y:yAtom-27});
 
-    bondZoneBetween(0,1);
+    bonds.push({a:0,b:1,x:Math.round((xLeft+xRight)/2-49),y:Math.round(yAtom-22)});
 
-    const blockedMap = computeBlockedSides(atoms, connections);
-    atoms.forEach(a => addLPBoxesAround(a.idx, a.x, a.y, a.sym, [...(blockedMap[a.idx]||[])]));
-    return { atoms, bonds, lpSlots };
+    addLPBoxesAround(0, xLeft-27, yAtom-27, mol.atoms[0], "right");
+    addLPBoxesAround(1, xRight-27, yAtom-27, mol.atoms[1], "left");
+    return {atoms,bonds,lpSlots};
   }
 
   if (mol.type === "linear3"){
@@ -406,12 +244,11 @@ function computeLayout(mol){
     atoms.push({idx:1, sym:mol.atoms[1], x:xC-27, y:y-27});
     atoms.push({idx:2, sym:mol.atoms[2], x:xR-27, y:y-27});
 
-    bondZoneBetween(1,0);
-    bondZoneBetween(1,2);
+    bonds.push({a:1,b:0,x:Math.round((xL+xC)/2-49),y:Math.round(y-22)});
+    bonds.push({a:1,b:2,x:Math.round((xC+xR)/2-49),y:Math.round(y-22)});
 
-    const blockedMap = computeBlockedSides(atoms, connections);
-    atoms.forEach(a => addLPBoxesAround(a.idx, a.x, a.y, a.sym, [...(blockedMap[a.idx]||[])]));
-    return { atoms, bonds, lpSlots };
+    atoms.forEach(a=> addLPBoxesAround(a.idx,a.x,a.y,a.sym,null));
+    return {atoms,bonds,lpSlots};
   }
 
   if (mol.type === "bent"){
@@ -425,12 +262,11 @@ function computeLayout(mol){
     atoms.push({idx:1, sym:mol.atoms[1], x:xL-27, y:yT-27});
     atoms.push({idx:2, sym:mol.atoms[2], x:xR-27, y:yT-27});
 
-    bondZoneBetween(0,1);
-    bondZoneBetween(0,2);
+    bonds.push({a:0,b:1,x:Math.round((xC+xL)/2-49),y:Math.round((yC+yT)/2-22)});
+    bonds.push({a:0,b:2,x:Math.round((xC+xR)/2-49),y:Math.round((yC+yT)/2-22)});
 
-    const blockedMap = computeBlockedSides(atoms, connections);
-    atoms.forEach(a => addLPBoxesAround(a.idx, a.x, a.y, a.sym, [...(blockedMap[a.idx]||[])]));
-    return { atoms, bonds, lpSlots };
+    atoms.forEach(a=> addLPBoxesAround(a.idx,a.x,a.y,a.sym,null));
+    return {atoms,bonds,lpSlots};
   }
 
   if (mol.type === "trigonal"){
@@ -439,24 +275,25 @@ function computeLayout(mol){
 
     atoms.push({idx:0, sym:mol.atoms[0], x:xC-27, y:yC-27});
 
-    const xTop = xC;
-    const yTop = Math.round(stageH * 0.25);
-    const xLeft = Math.round(stageW * 0.40);
-    const yLeft = Math.round(stageH * 0.52);
-    const xRight = Math.round(stageW * 0.70);
-    const yRight = Math.round(stageH * 0.52);
+    const xTop = xC, yTop = Math.round(stageH * 0.25);
+    const xLeft = Math.round(stageW * 0.40), yLeft = Math.round(stageH * 0.52);
+    const xRight = Math.round(stageW * 0.70), yRight = Math.round(stageH * 0.52);
 
     atoms.push({idx:1, sym:mol.atoms[1], x:xTop-27, y:yTop-27});
     atoms.push({idx:2, sym:mol.atoms[2], x:xLeft-27, y:yLeft-27});
     atoms.push({idx:3, sym:mol.atoms[3], x:xRight-27, y:yRight-27});
 
-    bondZoneBetween(0,1);
-    bondZoneBetween(0,2);
-    bondZoneBetween(0,3);
+    const bondBetween = (aIdx,bIdx)=>{
+      const A = atoms.find(x=>x.idx===aIdx);
+      const B = atoms.find(x=>x.idx===bIdx);
+      const ax = A.x+27, ay=A.y+27;
+      const bx = B.x+27, by=B.y+27;
+      bonds.push({a:aIdx,b:bIdx,x:Math.round((ax+bx)/2-49),y:Math.round((ay+by)/2-22)});
+    };
+    bondBetween(0,1); bondBetween(0,2); bondBetween(0,3);
 
-    const blockedMap = computeBlockedSides(atoms, connections);
-    atoms.forEach(a => addLPBoxesAround(a.idx, a.x, a.y, a.sym, [...(blockedMap[a.idx]||[])]));
-    return { atoms, bonds, lpSlots };
+    atoms.forEach(a=> addLPBoxesAround(a.idx,a.x,a.y,a.sym,null));
+    return {atoms,bonds,lpSlots};
   }
 
   if (mol.type === "tetra"){
@@ -465,36 +302,35 @@ function computeLayout(mol){
 
     atoms.push({idx:0, sym:mol.atoms[0], x:xC-27, y:yC-27});
 
-    const xUp = xC;
-    const yUp = Math.round(stageH * 0.22);
-    const xLeft = Math.round(stageW * 0.35);
-    const xRight = Math.round(stageW * 0.75);
-    const yLeft = yC;
-    const yRight = yC;
-    const xDown = xC;
-    const yDown = Math.round(stageH * 0.70);
+    const xUp = xC, yUp = Math.round(stageH * 0.22);
+    const xLeft = Math.round(stageW * 0.35), yLeft = yC;
+    const xRight = Math.round(stageW * 0.75), yRight = yC;
+    const xDown = xC, yDown = Math.round(stageH * 0.70);
 
     atoms.push({idx:1, sym:mol.atoms[1], x:xUp-27, y:yUp-27});
     atoms.push({idx:2, sym:mol.atoms[2], x:xLeft-27, y:yLeft-27});
     atoms.push({idx:3, sym:mol.atoms[3], x:xRight-27, y:yRight-27});
     atoms.push({idx:4, sym:mol.atoms[4], x:xDown-27, y:yDown-27});
 
-    bondZoneBetween(0,1);
-    bondZoneBetween(0,2);
-    bondZoneBetween(0,3);
-    bondZoneBetween(0,4);
+    const bondBetween = (aIdx,bIdx)=>{
+      const A = atoms.find(x=>x.idx===aIdx);
+      const B = atoms.find(x=>x.idx===bIdx);
+      const ax = A.x+27, ay=A.y+27;
+      const bx = B.x+27, by=B.y+27;
+      bonds.push({a:aIdx,b:bIdx,x:Math.round((ax+bx)/2-49),y:Math.round((ay+by)/2-22)});
+    };
+    bondBetween(0,1); bondBetween(0,2); bondBetween(0,3); bondBetween(0,4);
 
-    const blockedMap = computeBlockedSides(atoms, connections);
-    atoms.forEach(a => addLPBoxesAround(a.idx, a.x, a.y, a.sym, [...(blockedMap[a.idx]||[])]));
-    return { atoms, bonds, lpSlots };
+    atoms.forEach(a=> addLPBoxesAround(a.idx,a.x,a.y,a.sym,null));
+    return {atoms,bonds,lpSlots};
   }
 
-  return { atoms:[], bonds:[], lpSlots:[] };
+  return {atoms:[],bonds:[],lpSlots:[]};
 }
 
 function renderBondZone(zoneEl, a, b){
   const key = bondKey(a,b);
-  const order = session.build.placed.bonds.get(key);
+  const order = session.placed.bonds.get(key);
 
   zoneEl.innerHTML = "";
   if (!order){
@@ -508,17 +344,16 @@ function renderBondZone(zoneEl, a, b){
   svg.setAttribute("class","bondSvg");
   svg.setAttribute("viewBox","0 0 100 44");
 
-  const A2 = session.build.layout.atoms.find(x=>x.idx===a);
-  const B2 = session.build.layout.atoms.find(x=>x.idx===b);
-
-  const ax = A2.x+27, ay=A2.y+27;
-  const bx = B2.x+27, by=B2.y+27;
+  const A = session.layout.atoms.find(x=>x.idx===a);
+  const B = session.layout.atoms.find(x=>x.idx===b);
+  const ax = A.x+27, ay=A.y+27;
+  const bx = B.x+27, by=B.y+27;
   const angle = Math.atan2(by-ay, bx-ax) * 180 / Math.PI;
 
   const g = document.createElementNS("http://www.w3.org/2000/svg","g");
   g.setAttribute("transform", `translate(50 22) rotate(${angle}) translate(-50 -22)`);
 
-  const makeLine = (dy) => {
+  const makeLine = (dy)=>{
     const line = document.createElementNS("http://www.w3.org/2000/svg","line");
     line.setAttribute("x1","15");
     line.setAttribute("x2","85");
@@ -530,25 +365,18 @@ function renderBondZone(zoneEl, a, b){
     return line;
   };
 
-  if (order === 1){
-    g.appendChild(makeLine(0));
-  } else if (order === 2){
-    g.appendChild(makeLine(-6));
-    g.appendChild(makeLine(6));
-  } else if (order === 3){
-    g.appendChild(makeLine(-8));
-    g.appendChild(makeLine(0));
-    g.appendChild(makeLine(8));
-  }
+  if (order===1) g.appendChild(makeLine(0));
+  if (order===2){ g.appendChild(makeLine(-6)); g.appendChild(makeLine(6)); }
+  if (order===3){ g.appendChild(makeLine(-8)); g.appendChild(makeLine(0)); g.appendChild(makeLine(8)); }
 
   svg.appendChild(g);
   zoneEl.appendChild(svg);
 
-  zoneEl.onclick = () => {
-    const current = session.build.placed.bonds.get(key);
+  zoneEl.onclick = ()=>{
+    const current = session.placed.bonds.get(key);
     if (!current) return;
-    session.build.placed.bonds.delete(key);
-    refund(current === 1 ? COST.bond1 : current === 2 ? COST.bond2 : COST.bond3);
+    session.placed.bonds.delete(key);
+    refund(current===1?COST.bond1:current===2?COST.bond2:COST.bond3);
     zoneEl.onclick = null;
     renderBondZone(zoneEl, a, b);
   };
@@ -556,7 +384,7 @@ function renderBondZone(zoneEl, a, b){
 
 function renderLPZone(zoneEl, atomIdx, slotId){
   const key = `${atomIdx}|${slotId}`;
-  const filled = session.build.placed.lonePairs.get(key);
+  const filled = session.placed.lonePairs.get(key);
 
   zoneEl.innerHTML = "";
   if (!filled){
@@ -571,9 +399,9 @@ function renderLPZone(zoneEl, atomIdx, slotId){
   span.textContent = "••";
   zoneEl.appendChild(span);
 
-  zoneEl.onclick = () => {
-    if (!session.build.placed.lonePairs.get(key)) return;
-    session.build.placed.lonePairs.delete(key);
+  zoneEl.onclick = ()=>{
+    if (!session.placed.lonePairs.get(key)) return;
+    session.placed.lonePairs.delete(key);
     refund(COST.lp);
     zoneEl.onclick = null;
     renderLPZone(zoneEl, atomIdx, slotId);
@@ -581,62 +409,68 @@ function renderLPZone(zoneEl, atomIdx, slotId){
 }
 
 function wireDropZone(zoneEl){
-  zoneEl.addEventListener("dragover", (e)=>{ e.preventDefault(); });
-  zoneEl.addEventListener("drop", (e)=>{
+  zoneEl.addEventListener("dragover",(e)=> e.preventDefault());
+  zoneEl.addEventListener("drop",(e)=>{
     e.preventDefault();
     const tool = e.dataTransfer.getData("text/plain");
-    if (!tool) return;
+    if (!tool || !session || !session.inSet) return;
 
     const kind = zoneEl.dataset.kind;
 
-    if (kind === "bond"){
-      if (!(tool==="bond1" || tool==="bond2" || tool==="bond3")) return;
-
+    if (kind==="bond"){
+      if (!(tool==="bond1"||tool==="bond2"||tool==="bond3")) return;
       const a = Number(zoneEl.dataset.a);
       const b = Number(zoneEl.dataset.b);
       const key = bondKey(a,b);
-      if (session.build.placed.bonds.get(key)) return;
+      if (session.placed.bonds.get(key)) return;
 
       const cost = COST[tool];
       if (!canSpend(cost)){
-        flashFeedback("You don’t have enough electrons left for that placement. Remove something first.", "bad");
-        session.errorCounts.overspent++;
+        flashFeedback("Not enough electrons left. Remove something first.", "bad");
         return;
       }
-
       spend(cost);
       const order = tool==="bond1"?1:tool==="bond2"?2:3;
-      session.build.placed.bonds.set(key, order);
+      session.placed.bonds.set(key, order);
       renderBondZone(zoneEl, a, b);
       return;
     }
 
-    if (kind === "lp"){
-      if (tool !== "lp") return;
-
+    if (kind==="lp"){
+      if (tool!=="lp") return;
       const atomIdx = Number(zoneEl.dataset.atom);
       const slotId = zoneEl.dataset.slot;
       const key = `${atomIdx}|${slotId}`;
-      if (session.build.placed.lonePairs.get(key)) return;
+      if (session.placed.lonePairs.get(key)) return;
 
-      const cost = COST.lp;
-      if (!canSpend(cost)){
-        flashFeedback("You don’t have enough electrons left for that lone pair. Remove something first.", "bad");
-        session.errorCounts.overspent++;
+      if (!canSpend(COST.lp)){
+        flashFeedback("Not enough electrons left. Remove something first.", "bad");
         return;
       }
-
-      spend(cost);
-      session.build.placed.lonePairs.set(key, true);
+      spend(COST.lp);
+      session.placed.lonePairs.set(key, true);
       renderLPZone(zoneEl, atomIdx, slotId);
-      return;
     }
   });
 }
 
+function canSpend(cost){
+  return session.bankRemain !== null && session.bankRemain >= cost;
+}
+function spend(cost){
+  session.bankRemain -= cost;
+  if (session.bankRemain < 0) session.bankRemain = 0;
+  el.bankRemainMini.textContent = String(session.bankRemain);
+}
+function refund(cost){
+  session.bankRemain += cost;
+  if (session.bankRemain > session.bankTotal) session.bankRemain = session.bankTotal;
+  el.bankRemainMini.textContent = String(session.bankRemain);
+}
+
 function renderModel(){
   clearStage();
-  const { atoms, bonds, lpSlots } = session.build.layout;
+  const { atoms, bonds, lpSlots } = session.layout;
 
   atoms.forEach(a=>{
     const d = document.createElement("div");
@@ -675,27 +509,30 @@ function renderModel(){
   });
 }
 
-// ---- Validation (same structure as Guided Build) ----
 function countPlacedLonePairsByAtom(){
   const counts = {};
-  for (const k of session.build.placed.lonePairs.keys()){
+  for (const k of session.placed.lonePairs.keys()){
     const atomIdx = Number(k.split("|")[0]);
     counts[atomIdx] = (counts[atomIdx] || 0) + 1;
   }
   return counts;
 }
 
-function classifyErrors(mol){
+function checkModel(){
+  const mol = session.mol;
   const target = mol.target;
+
+  session.attemptsTotal++;
+
   const placedLP = countPlacedLonePairsByAtom();
 
   let bondMistakes = 0;
   for (const tb of target.bonds){
     const key = bondKey(tb.a, tb.b);
-    const got = session.build.placed.bonds.get(key) || 0;
+    const got = session.placed.bonds.get(key) || 0;
     if (got !== tb.order) bondMistakes++;
   }
-  for (const [key] of session.build.placed.bonds.entries()){
+  for (const [key] of session.placed.bonds.entries()){
     const exists = target.bonds.some(tb => bondKey(tb.a,tb.b) === key);
     if (!exists) bondMistakes++;
   }
@@ -708,190 +545,225 @@ function classifyErrors(mol){
     if (need !== got) lpMistakes++;
   }
 
-  const bankOk = (session.build.bankRemain === 0);
-
-  return { bondMistakes, lpMistakes, bankOk };
-}
-
-function checkModel(){
-  if (!session) return;
-
-  const mol = session.set[session.idx];
-
-  // Stop timer "on submission"
-  let elapsed = 0;
-  if (session.options.timer && timerStart){
-    elapsed = Date.now() - timerStart;
-    stopTimer();
-  }
-
-  session.attemptsByMol[session.idx] += 1;
-  session.totalAttempts += 1;
-  el.btnNext.disabled = false;
-
-  const { bondMistakes, lpMistakes, bankOk } = classifyErrors(mol);
-
-  // log errors for summary (even if hints are OFF)
-  if (!bankOk) session.errorCounts.electron++;
-  if (bondMistakes > 0) session.errorCounts.bonding++;
-  if (lpMistakes > 0) session.errorCounts.lonepairs++;
+  const bankOk = (session.bankRemain === 0);
 
   const correct = (bondMistakes===0 && lpMistakes===0 && bankOk);
 
-  if (correct){
-    session.solvedByMol[session.idx] = true;
-    // time per molecule: record elapsed on the successful submission
-    if (session.options.timer) session.timeByMolMs[session.idx] = elapsed;
+  // Track common error type
+  let errorType = "unknown";
+  if (!correct){
+    if (!bankOk) errorType = (session.bankRemain > 0) ? "unused electrons" : "overspent electrons";
+    else if (bondMistakes>0) errorType = "bonding pattern";
+    else if (lpMistakes>0) errorType = "lone pairs";
+  }
+  if (!correct){
+    session.errorCounts[errorType] = (session.errorCounts[errorType] || 0) + 1;
+  }
 
-    flashFeedback("Correct ✅", "ok");
-    el.btnNext.textContent = (session.idx === session.set.length - 1) ? "Finish set" : "Next";
+  if (correct){
+    session.correctCount++;
+    session.moleculeResults.push({
+      name: mol.name,
+      attempts: session.attemptsThisMol,
+      timeSec: el.toggleTimer.checked ? getElapsedSeconds() : null,
+      correct: true
+    });
+
+    if (el.toggleHints.checked){
+      flashFeedback("Correct ✅", "ok");
+    } else {
+      flashFeedback("Correct ✅", "ok");
+    }
+    el.btnNext.disabled = false;
+    stopTimer();
     return;
   }
 
   // Incorrect
-  if (!session.options.timer){
-    // nothing
-  } else {
-    // If incorrect and timer ON, restart timer for the next attempt (keeps “starts when molecule loads” behavior)
-    resetTimerUI();
-    startTimer();
-  }
-
-  if (!session.options.hints){
+  if (!el.toggleHints.checked){
     flashFeedback("Incorrect ❌", "bad");
     return;
   }
 
-  // Hints ON: limited category feedback (no exact fixes)
-  const hints = [];
-  if (!bankOk) hints.push("• Electron count issue (you have electrons left, or you overspent).");
-  if (bondMistakes > 0) hints.push("• Bonding pattern issue (check single vs double vs triple).");
-  if (lpMistakes > 0) hints.push("• Lone-pair issue (some atoms are missing or have too many lone pairs).");
+  // Limited hint buckets only (as requested)
+  const buckets = [];
+  if (!bankOk) buckets.push("electron count issue");
+  else {
+    if (bondMistakes>0) buckets.push("bonding pattern issue");
+    if (lpMistakes>0) buckets.push("lone pairs issue");
+  }
 
-  flashFeedback("Not yet — try again.\n" + hints.join("\n"), "bad");
+  flashFeedback("Incorrect ❌  • " + buckets.join(" • "), "bad");
 }
 
 function clearPlacements(){
-  if (!session) return;
-
-  for (const [k, order] of session.build.placed.bonds.entries()){
+  // Refund everything
+  for (const [, order] of session.placed.bonds.entries()){
     refund(order===1?COST.bond1:order===2?COST.bond2:COST.bond3);
   }
-  for (const k of session.build.placed.lonePairs.keys()){
+  for (const k of session.placed.lonePairs.keys()){
     refund(COST.lp);
   }
+  session.placed.bonds.clear();
+  session.placed.lonePairs.clear();
 
-  session.build.placed.bonds.clear();
-  session.build.placed.lonePairs.clear();
-
+  session.attemptsThisMol++; // retry attempt counter (counts rebuilds as attempts after a check)
   renderModel();
   flashFeedback("Cleared placements. Rebuild the model.", "soft");
 }
 
-function nextMolecule(){
-  if (!session) return;
+function pickSet(n){
+  const pool = shuffle(PRACTICE_MOLECULES);
+  return pool.slice(0, Math.min(n, pool.length));
+}
 
-  // If timer ON and they never got it correct, store time from the last attempt start as "time spent"
-  if (session.options.timer && !session.solvedByMol[session.idx] && timerStart){
-    const ms = Date.now() - timerStart;
-    session.timeByMolMs[session.idx] = ms;
+function loadMolecule(mol, idx, total){
+  session.mol = mol;
+  session.layout = computeLayout(mol);
+
+  session.bankTotal = totalValence(mol);
+  session.bankRemain = session.bankTotal;
+
+  session.placed = {
+    bonds: new Map(),
+    lonePairs: new Map(),
+  };
+
+  session.attemptsThisMol = 1;
+
+  el.molName.innerHTML = formatFormula(mol.name);
+  el.molHint.textContent = "Build your best Lewis structure, then check.";
+  el.bankRemainMini.textContent = String(session.bankRemain);
+
+  el.progressRow.style.display = "block";
+  el.progressText.textContent = `Molecule ${idx+1} of ${total}`;
+  el.modeText.textContent =
+    `${el.toggleHints.checked ? "Hints: ON" : "Hints: OFF"} • ` +
+    `${el.toggleReminders.checked ? "Reminders: ON" : "Reminders: OFF"} • ` +
+    `${el.toggleTimer.checked ? "Timer: ON" : "Timer: OFF"}`;
+
+  el.summaryCard.style.display = "none";
+  lockStage(false);
+  renderModel();
+  setEnabledBuild(true);
+  el.btnNext.disabled = true;
+  el.feedback.style.display = "none";
+
+  if (el.toggleTimer.checked){
+    el.timerBox.style.display = "block";
+    startTimer();
+  } else {
+    el.timerBox.style.display = "none";
     stopTimer();
+    startedAt = null;
+    el.timerText.textContent = "0:00";
   }
+}
 
-  if (session.idx >= session.set.length - 1){
-    finishSet();
+function nextMolecule(){
+  stopTimer();
+
+  session.index++;
+  if (session.index >= session.set.length){
+    endSet();
     return;
   }
-
-  session.idx += 1;
-  loadCurrentMolecule();
+  loadMolecule(session.set[session.index], session.index, session.set.length);
 }
 
-// ---- Summary ----
-function finishSet(){
-  enableBuildUI(false);
-  setOverlay(true, "Set complete. See your summary below.");
-  el.btnNext.disabled = true;
+function endSet(){
+  stopTimer();
+  setEnabledBuild(false);
+  lockStage(true, "Set complete. View your summary below.");
+  el.summaryCard.style.display = "block";
 
   const total = session.set.length;
-  const correctCount = session.solvedByMol.filter(Boolean).length;
-  const attempts = session.totalAttempts;
+  const correct = session.correctCount;
 
-  // most common error type
-  const errors = session.errorCounts;
-  const errorPairs = [
-    ["Electron count issue", errors.electron],
-    ["Bonding pattern issue", errors.bonding],
-    ["Lone-pair issue", errors.lonepairs],
-    ["Overspent electrons", errors.overspent],
-  ];
-  errorPairs.sort((a,b)=>b[1]-a[1]);
-  const topError = errorPairs[0][1] > 0 ? `${errorPairs[0][0]} (${errorPairs[0][1]})` : "—";
-
-  // average time per molecule (optional)
-  let avgTimeText = "—";
-  if (session.options.timer){
-    const times = session.timeByMolMs.filter(ms => Number.isFinite(ms) && ms > 0);
-    if (times.length){
-      const avg = times.reduce((a,b)=>a+b,0) / times.length;
-      avgTimeText = formatTime(avg);
-    }
+  let common = "—";
+  const entries = Object.entries(session.errorCounts);
+  if (entries.length){
+    entries.sort((a,b)=> b[1]-a[1]);
+    common = entries[0][0];
   }
 
-  el.summaryBody.innerHTML = `
-    <div style="display:grid; gap:10px;">
-      <div><b>Total correct:</b> ${correctCount} / ${total}</div>
-      <div><b>Number of attempts:</b> ${attempts}</div>
-      <div><b>Most common error type:</b> ${topError}</div>
-      <div><b>Average time per molecule:</b> ${avgTimeText}</div>
-    </div>
-  `;
+  let avgTime = "—";
+  const times = session.moleculeResults.map(r=>r.timeSec).filter(x=>typeof x==="number");
+  if (times.length){
+    const avg = Math.round(times.reduce((a,b)=>a+b,0) / times.length);
+    const m = Math.floor(avg/60), s = avg%60;
+    avgTime = `${m}:${String(s).padStart(2,"0")}`;
+  }
 
-  el.summaryCard.style.display = "block";
-  window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+  el.summaryBody.innerHTML =
+    `<b>Results</b><br>` +
+    `• Total correct: <b>${correct}</b> of <b>${total}</b><br>` +
+    `• Total attempts (checks): <b>${session.attemptsTotal}</b><br>` +
+    `• Most common error type: <b>${common}</b><br>` +
+    `• Average time per molecule: <b>${avgTime}</b>`;
+
+  flashFeedback("Set complete ✅", "ok");
 }
 
-function resetToIdle(){
+function startSet(){
+  const n = Number(el.setSize.value || 5);
+
+  session = {
+    inSet: true,
+    set: pickSet(n),
+    index: 0,
+    mol: null,
+    layout: null,
+    bankTotal: null,
+    bankRemain: null,
+    placed: { bonds:new Map(), lonePairs:new Map() },
+    correctCount: 0,
+    attemptsTotal: 0,
+    attemptsThisMol: 1,
+    moleculeResults: [],
+    errorCounts: {},
+  };
+
+  el.btnStartSet.disabled = true;
+  el.btnNewSet.disabled = false;
+
+  el.bankMini.style.display = "block";
+  applyToggleUI();
+
+  loadMolecule(session.set[0], 0, session.set.length);
+}
+
+function resetToNotStarted(){
   stopTimer();
   session = null;
-
-  el.progressRow.style.display = "none";
-  el.setupNote.style.display = "block";
-  el.summaryCard.style.display = "none";
-
+  clearStage();
+  lockStage(true, "Start a set to reveal the model.");
   el.molName.innerHTML = "—";
   el.molHint.textContent = "Start a set to begin.";
-  clearStage();
-  setOverlay(true, "Start a set to reveal the model.");
-
+  el.progressRow.style.display = "none";
+  el.summaryCard.style.display = "none";
   el.feedback.style.display = "none";
-  enableBuildUI(false);
-  el.btnNext.textContent = "Next";
+  el.btnStartSet.disabled = false;
+  setEnabledBuild(false);
+  applyToggleUI();
 }
 
-// ---- Toolbox drag ----
-function initToolbox(){
-  document.querySelectorAll(".tool").forEach(toolEl=>{
-    toolEl.addEventListener("dragstart",(e)=>{
-      e.dataTransfer.setData("text/plain", toolEl.dataset.tool);
-    });
-  });
+function newSet(){
+  resetToNotStarted();
 }
 
-// ---- Wire UI ----
-el.toggleHints.addEventListener("change", updateModeText);
-el.toggleReminders.addEventListener("change", updateModeText);
-el.toggleTimer.addEventListener("change", updateModeText);
+// ===== Events =====
+el.btnNewSet.addEventListener("click", ()=> newSet());
+el.btnStartSet.addEventListener("click", ()=> startSet());
+el.btnCheckModel.addEventListener("click", ()=> checkModel());
+el.btnClear.addEventListener("click", ()=> clearPlacements());
+el.btnNext.addEventListener("click", ()=> nextMolecule());
+el.btnRestart.addEventListener("click", ()=> newSet());
 
-el.btnNewSet.addEventListener("click", resetToIdle);
-el.btnStartSet.addEventListener("click", startNewSet);
-el.btnRestart.addEventListener("click", ()=>{ resetToIdle(); });
+el.toggleHints.addEventListener("change", applyToggleUI);
+el.toggleReminders.addEventListener("change", applyToggleUI);
+el.toggleTimer.addEventListener("change", applyToggleUI);
 
-el.btnCheckModel.addEventListener("click", checkModel);
-el.btnClear.addEventListener("click", clearPlacements);
-el.btnNext.addEventListener("click", nextMolecule);
-
-// ---- Start ----
+// ===== Boot =====
 initToolbox();
-updateModeText();
-resetToIdle();
+resetToNotStarted();
