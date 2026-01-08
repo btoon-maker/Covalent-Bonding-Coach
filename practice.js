@@ -1,6 +1,7 @@
 // Independent & Challenge Practice (practice.js)
-// Uses SAME molecule structure, SAME interface behaviors, SAME validation style,
-// but with an expanded practice-only bank to reduce memorization.
+// Uses SAME molecule structure, SAME drag/drop interface feel,
+// but practice-only bank + practice-only UI logic.
+// IMPORTANT FIX: Lone-pair drop zones are NEVER placed between bonded atoms.
 
 const VALENCE = { H:1, F:7, Cl:7, Br:7, C:4, N:5, O:6, P:5 };
 const COST = { bond1:2, bond2:4, bond3:6, lp:2 };
@@ -9,7 +10,6 @@ const COST = { bond1:2, bond2:4, bond3:6, lp:2 };
  * PRACTICE BANK
  * - Partial overlap with Guided Build (HF, CO2, H2O, NH3, PF3, CF4)
  * - Adds additional molecules that still fit existing layout types
- * - Avoids radicals/odd-electron species to keep grading clean
  */
 const PRACTICE_MOLECULES = [
   // ===== Overlap (some, not all) =====
@@ -30,8 +30,6 @@ const PRACTICE_MOLECULES = [
       lonePairs:{0:0,1:3,2:3,3:3,4:3} } },
 
   // ===== New (reduces memorization) =====
-
-  // Diatomic
   { name:"Cl2", type:"diatomic", atoms:["Cl","Cl"], central:null,
     target:{ bonds:[{a:0,b:1,order:1}], lonePairs:{0:3,1:3} } },
   { name:"HCl", type:"diatomic", atoms:["H","Cl"], central:null,
@@ -39,19 +37,16 @@ const PRACTICE_MOLECULES = [
   { name:"HBr", type:"diatomic", atoms:["H","Br"], central:null,
     target:{ bonds:[{a:0,b:1,order:1}], lonePairs:{0:0,1:3} } },
 
-  // Linear 3
   { name:"FCN", type:"linear3", atoms:["F","C","N"], central:1,
     target:{ bonds:[{a:1,b:0,order:1},{a:1,b:2,order:3}], lonePairs:{0:3,1:0,2:1} } },
   { name:"ClCN", type:"linear3", atoms:["Cl","C","N"], central:1,
     target:{ bonds:[{a:1,b:0,order:1},{a:1,b:2,order:3}], lonePairs:{0:3,1:0,2:1} } },
 
-  // Bent 3
   { name:"OF2", type:"bent", atoms:["O","F","F"], central:0,
     target:{ bonds:[{a:0,b:1,order:1},{a:0,b:2,order:1}], lonePairs:{0:2,1:3,2:3} } },
   { name:"Cl2O", type:"bent", atoms:["O","Cl","Cl"], central:0,
     target:{ bonds:[{a:0,b:1,order:1},{a:0,b:2,order:1}], lonePairs:{0:2,1:3,2:3} } },
 
-  // Trigonal
   { name:"NF3", type:"trigonal", atoms:["N","F","F","F"], central:0,
     target:{ bonds:[{a:0,b:1,order:1},{a:0,b:2,order:1},{a:0,b:3,order:1}],
       lonePairs:{0:1,1:3,2:3,3:3} } },
@@ -62,7 +57,6 @@ const PRACTICE_MOLECULES = [
     target:{ bonds:[{a:0,b:1,order:1},{a:0,b:2,order:1},{a:0,b:3,order:1}],
       lonePairs:{0:1,1:3,2:3,3:3} } },
 
-  // Tetrahedral
   { name:"CH4", type:"tetra", atoms:["C","H","H","H","H"], central:0,
     target:{ bonds:[{a:0,b:1,order:1},{a:0,b:2,order:1},{a:0,b:3,order:1},{a:0,b:4,order:1}],
       lonePairs:{0:0,1:0,2:0,3:0,4:0} } },
@@ -174,14 +168,10 @@ function getElapsedSeconds(){
 }
 
 function applyToggleUI(){
-  // reminders panel show/hide
   el.remindersPanel.style.display = el.toggleReminders.checked ? "block" : "none";
 
-  // timer show/hide (only when set is running)
   const setRunning = !!session && session.inSet;
   el.timerBox.style.display = (setRunning && el.toggleTimer.checked) ? "block" : "none";
-
-  // mini bank only shown during set
   el.bankMini.style.display = setRunning ? "block" : "none";
 }
 
@@ -193,6 +183,51 @@ function initToolbox(){
   });
 }
 
+/**
+ * Decide which side of an atom is "toward" a neighbor.
+ * Returns one of: "top" | "bottom" | "left" | "right"
+ */
+function sideToward(ax, ay, bx, by){
+  const dx = bx - ax;
+  const dy = by - ay;
+  if (Math.abs(dx) >= Math.abs(dy)){
+    return dx >= 0 ? "right" : "left";
+  } else {
+    return dy >= 0 ? "bottom" : "top";
+  }
+}
+
+/**
+ * Compute blocked sides for LP slots so NO LP box appears between bonded atoms.
+ * blocked[atomIdx] = Set(["left","right",...])
+ */
+function computeBlockedSides(atoms, bonds){
+  const blocked = {};
+  atoms.forEach(a => blocked[a.idx] = new Set());
+
+  const centerOf = (atomIdx)=>{
+    const A = atoms.find(x=>x.idx===atomIdx);
+    return { cx: A.x + 27, cy: A.y + 27 };
+  };
+
+  bonds.forEach(b=>{
+    const A = centerOf(b.a);
+    const B = centerOf(b.b);
+
+    const sideA = sideToward(A.cx, A.cy, B.cx, B.cy);
+    const sideB = sideToward(B.cx, B.cy, A.cx, A.cy);
+
+    blocked[b.a].add(sideA);
+    blocked[b.b].add(sideB);
+  });
+
+  return blocked;
+}
+
+/**
+ * Layout builder (same shapes)
+ * FIX: LP boxes are only on OUTSIDE of atoms by blocking bond-facing sides.
+ */
 function computeLayout(mol){
   const stageW = el.stage.clientWidth || 700;
   const stageH = 320;
@@ -202,23 +237,25 @@ function computeLayout(mol){
   const lpSlots = [];
 
   const isH = (sym)=> sym==="H";
-
   const addLP = (atomIdx, x, y, slotId)=> lpSlots.push({atomIdx,x,y,slotId});
 
-  const addLPBoxesAround = (atomIdx, x, y, sym, blockedSide=null)=>{
+  const addLPBoxesAround = (atomIdx, x, y, sym, blockedSet)=>{
     if (isH(sym)) return;
+
     const offsets = [
       {id:"top",    dx: 16, dy:-24},
       {id:"bottom", dx: 16, dy: 62},
       {id:"left",   dx:-22, dy: 18},
       {id:"right",  dx: 54, dy: 18},
     ];
+
     offsets.forEach(o=>{
-      if (blockedSide && o.id===blockedSide) return;
+      if (blockedSet && blockedSet.has(o.id)) return; // key fix
       addLP(atomIdx, x+o.dx, y+o.dy, o.id);
     });
   };
 
+  // --- Place atoms + bonds (same as before) ---
   if (mol.type === "diatomic"){
     const yAtom = Math.round(stageH * 0.48);
     const xLeft = Math.round(stageW * 0.30);
@@ -228,10 +265,6 @@ function computeLayout(mol){
     atoms.push({idx:1, sym:mol.atoms[1], x:xRight-27, y:yAtom-27});
 
     bonds.push({a:0,b:1,x:Math.round((xLeft+xRight)/2-49),y:Math.round(yAtom-22)});
-
-    addLPBoxesAround(0, xLeft-27, yAtom-27, mol.atoms[0], "right");
-    addLPBoxesAround(1, xRight-27, yAtom-27, mol.atoms[1], "left");
-    return {atoms,bonds,lpSlots};
   }
 
   if (mol.type === "linear3"){
@@ -246,9 +279,6 @@ function computeLayout(mol){
 
     bonds.push({a:1,b:0,x:Math.round((xL+xC)/2-49),y:Math.round(y-22)});
     bonds.push({a:1,b:2,x:Math.round((xC+xR)/2-49),y:Math.round(y-22)});
-
-    atoms.forEach(a=> addLPBoxesAround(a.idx,a.x,a.y,a.sym,null));
-    return {atoms,bonds,lpSlots};
   }
 
   if (mol.type === "bent"){
@@ -264,9 +294,6 @@ function computeLayout(mol){
 
     bonds.push({a:0,b:1,x:Math.round((xC+xL)/2-49),y:Math.round((yC+yT)/2-22)});
     bonds.push({a:0,b:2,x:Math.round((xC+xR)/2-49),y:Math.round((yC+yT)/2-22)});
-
-    atoms.forEach(a=> addLPBoxesAround(a.idx,a.x,a.y,a.sym,null));
-    return {atoms,bonds,lpSlots};
   }
 
   if (mol.type === "trigonal"){
@@ -291,9 +318,6 @@ function computeLayout(mol){
       bonds.push({a:aIdx,b:bIdx,x:Math.round((ax+bx)/2-49),y:Math.round((ay+by)/2-22)});
     };
     bondBetween(0,1); bondBetween(0,2); bondBetween(0,3);
-
-    atoms.forEach(a=> addLPBoxesAround(a.idx,a.x,a.y,a.sym,null));
-    return {atoms,bonds,lpSlots};
   }
 
   if (mol.type === "tetra"){
@@ -320,12 +344,15 @@ function computeLayout(mol){
       bonds.push({a:aIdx,b:bIdx,x:Math.round((ax+bx)/2-49),y:Math.round((ay+by)/2-22)});
     };
     bondBetween(0,1); bondBetween(0,2); bondBetween(0,3); bondBetween(0,4);
-
-    atoms.forEach(a=> addLPBoxesAround(a.idx,a.x,a.y,a.sym,null));
-    return {atoms,bonds,lpSlots};
   }
 
-  return {atoms:[],bonds:[],lpSlots:[]};
+  // --- KEY FIX: block bond-facing sides, then add LP boxes ---
+  const blocked = computeBlockedSides(atoms, bonds);
+  atoms.forEach(a=>{
+    addLPBoxesAround(a.idx, a.x, a.y, a.sym, blocked[a.idx]);
+  });
+
+  return {atoms,bonds,lpSlots};
 }
 
 function renderBondZone(zoneEl, a, b){
@@ -546,17 +573,13 @@ function checkModel(){
   }
 
   const bankOk = (session.bankRemain === 0);
-
   const correct = (bondMistakes===0 && lpMistakes===0 && bankOk);
 
-  // Track common error type
   let errorType = "unknown";
   if (!correct){
     if (!bankOk) errorType = (session.bankRemain > 0) ? "unused electrons" : "overspent electrons";
     else if (bondMistakes>0) errorType = "bonding pattern";
     else if (lpMistakes>0) errorType = "lone pairs";
-  }
-  if (!correct){
     session.errorCounts[errorType] = (session.errorCounts[errorType] || 0) + 1;
   }
 
@@ -569,35 +592,27 @@ function checkModel(){
       correct: true
     });
 
-    if (el.toggleHints.checked){
-      flashFeedback("Correct ✅", "ok");
-    } else {
-      flashFeedback("Correct ✅", "ok");
-    }
+    flashFeedback("Correct ✅", "ok");
     el.btnNext.disabled = false;
     stopTimer();
     return;
   }
 
-  // Incorrect
   if (!el.toggleHints.checked){
     flashFeedback("Incorrect ❌", "bad");
     return;
   }
 
-  // Limited hint buckets only (as requested)
   const buckets = [];
   if (!bankOk) buckets.push("electron count issue");
   else {
     if (bondMistakes>0) buckets.push("bonding pattern issue");
     if (lpMistakes>0) buckets.push("lone pairs issue");
   }
-
   flashFeedback("Incorrect ❌  • " + buckets.join(" • "), "bad");
 }
 
 function clearPlacements(){
-  // Refund everything
   for (const [, order] of session.placed.bonds.entries()){
     refund(order===1?COST.bond1:order===2?COST.bond2:COST.bond3);
   }
@@ -607,7 +622,7 @@ function clearPlacements(){
   session.placed.bonds.clear();
   session.placed.lonePairs.clear();
 
-  session.attemptsThisMol++; // retry attempt counter (counts rebuilds as attempts after a check)
+  session.attemptsThisMol++;
   renderModel();
   flashFeedback("Cleared placements. Rebuild the model.", "soft");
 }
@@ -624,11 +639,7 @@ function loadMolecule(mol, idx, total){
   session.bankTotal = totalValence(mol);
   session.bankRemain = session.bankTotal;
 
-  session.placed = {
-    bonds: new Map(),
-    lonePairs: new Map(),
-  };
-
+  session.placed = { bonds: new Map(), lonePairs: new Map() };
   session.attemptsThisMol = 1;
 
   el.molName.innerHTML = formatFormula(mol.name);
@@ -662,7 +673,6 @@ function loadMolecule(mol, idx, total){
 
 function nextMolecule(){
   stopTimer();
-
   session.index++;
   if (session.index >= session.set.length){
     endSet();
